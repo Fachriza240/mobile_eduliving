@@ -14,7 +14,6 @@ class AuthProvider extends ChangeNotifier {
   String? _errorMessage;
   Map<String, dynamic>? _fieldErrors;
 
-  // ── Getters ──────────────────────────────────────────
   AuthStatus get status => _status;
   UserModel? get user => _user;
   String? get errorMessage => _errorMessage;
@@ -35,9 +34,13 @@ class AuthProvider extends ChangeNotifier {
         return;
       }
 
-      // Verifikasi token ke server
       final res = await _api.get(ApiConstants.me);
-      _user = UserModel.fromJson(res['data'] ?? res);
+      // Response: { "status": "success", "data": { "user": {...} } }
+      final data = res['data'] as Map<String, dynamic>?;
+      final userData = data?['user'] as Map<String, dynamic>?;
+      if (userData != null) {
+        _user = UserModel.fromJson(userData);
+      }
       _status = AuthStatus.authenticated;
     } catch (_) {
       await StorageHelper.clearAll();
@@ -66,8 +69,10 @@ class AuthProvider extends ChangeNotifier {
         },
       );
 
-      final token = res['token'] as String?;
-      final userData = res['user'] as Map<String, dynamic>?;
+      // Response: { "status":"success", "data": { "user":{...}, "token":"..." } }
+      final data = res['data'] as Map<String, dynamic>?;
+      final token = data?['token'] as String?;
+      final userData = data?['user'] as Map<String, dynamic>?;
 
       if (token == null || userData == null) {
         throw ApiException(message: 'Respons login tidak valid dari server.');
@@ -106,6 +111,8 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String passwordConfirmation,
+    required String phone,
+    required String address,
     String role = 'user',
   }) async {
     _status = AuthStatus.loading;
@@ -114,6 +121,12 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Map role ke format yang diterima backend
+      String backendRole = role;
+      if (role == 'provider_residence' || role == 'provider_event') {
+        backendRole = role; // kirim apa adanya, backend akan handle
+      }
+
       final res = await _api.post(
         ApiConstants.register,
         data: {
@@ -121,12 +134,16 @@ class AuthProvider extends ChangeNotifier {
           'email': email.trim(),
           'password': password,
           'password_confirmation': passwordConfirmation,
-          'role': role,
+          'phone': phone.trim(),
+          'address': address.trim(),
+          'role': backendRole,
         },
       );
 
-      final token = res['token'] as String?;
-      final userData = res['user'] as Map<String, dynamic>?;
+      // Response: { "status":"success", "data": { "user":{...}, "token":"..." } }
+      final data = res['data'] as Map<String, dynamic>?;
+      final token = data?['token'] as String?;
+      final userData = data?['user'] as Map<String, dynamic>?;
 
       if (token == null || userData == null) {
         throw ApiException(message: 'Respons registrasi tidak valid.');
@@ -163,25 +180,26 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     try {
       await _api.post(ApiConstants.logout);
-    } catch (_) {
-      // Tetap logout meski API error
-    }
+    } catch (_) {}
     await StorageHelper.clearAll();
     _user = null;
     _status = AuthStatus.unauthenticated;
     notifyListeners();
   }
 
-  // ── Refresh Data User ────────────────────────────────
+  // ── Refresh User ─────────────────────────────────────
   Future<void> refreshUser() async {
     try {
       final res = await _api.get(ApiConstants.me);
-      _user = UserModel.fromJson(res['data'] ?? res);
-      notifyListeners();
+      final data = res['data'] as Map<String, dynamic>?;
+      final userData = data?['user'] as Map<String, dynamic>?;
+      if (userData != null) {
+        _user = UserModel.fromJson(userData);
+        notifyListeners();
+      }
     } catch (_) {}
   }
 
-  // ── Update User Lokal ────────────────────────────────
   void updateUserLocal(UserModel updated) {
     _user = updated;
     notifyListeners();

@@ -14,18 +14,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _obscurePass = true;
   bool _obscureConfirm = true;
   String _selectedRole = 'user';
 
-  // Setiap role punya warna modul masing-masing
   final List<Map<String, dynamic>> _roles = [
     {
       'value': 'user',
       'label': 'Mahasiswa',
-      'desc': 'Cari hunian, ikut acara, dan beli barang',
+      'desc': 'Cari hunian, ikut acara, beli barang',
       'icon': Icons.person_rounded,
       'color': AppColors.primary,
       'lightColor': AppColors.primaryLight,
@@ -41,7 +42,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     {
       'value': 'provider_event',
       'label': 'Provider Acara',
-      'desc': 'Buat dan kelola event / seminar kampus',
+      'desc': 'Buat dan kelola event kampus',
       'icon': Icons.event_rounded,
       'color': AppColors.activity,
       'lightColor': AppColors.activityLight,
@@ -52,6 +53,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
@@ -67,6 +70,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       email: _emailCtrl.text,
       password: _passCtrl.text,
       passwordConfirmation: _confirmCtrl.text,
+      phone: _phoneCtrl.text,
+      address: _addressCtrl.text,
       role: _selectedRole,
     );
 
@@ -105,14 +110,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Icon(Icons.check_circle_rounded,
                 color: AppColors.success, size: 22),
             SizedBox(width: 8),
-            Text(
-              'Akun Berhasil Dibuat!',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-              ),
-            ),
+            Text('Akun Berhasil Dibuat!',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16)),
           ],
         ),
         content: const Text(
@@ -121,11 +123,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'sebelum dapat mengelola listing.\n\n'
           'Biasanya 1–2 hari kerja.',
           style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13,
-            color: AppColors.textSecondary,
-            height: 1.6,
-          ),
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.6),
         ),
         actions: [
           ElevatedButton(
@@ -159,46 +160,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Judul ──────────────────────────
-                const Text(
-                  'Daftar sebagai apa?',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                // ── Pilih Role ─────────────────────
+                const Text('Daftar sebagai apa?',
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary)),
                 const SizedBox(height: 4),
-                const Text(
-                  'Pilih peran Anda di EduLiving',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                const Text('Pilih peran Anda di EduLiving',
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        color: AppColors.textSecondary)),
                 const SizedBox(height: 20),
-
-                // ── Role Cards ─────────────────────
                 ..._roles.map((r) => _buildRoleCard(r)),
                 const SizedBox(height: 24),
 
                 // ── Divider ────────────────────────
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text('Lengkapi data diri',
-                          style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12,
-                              color: AppColors.textHint)),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
+                Row(children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('Lengkapi data diri',
+                        style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 12,
+                            color: AppColors.textHint)),
+                  ),
+                  const Expanded(child: Divider()),
+                ]),
                 const SizedBox(height: 20),
 
                 // ── Nama ───────────────────────────
@@ -216,9 +207,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (v == null || v.trim().isEmpty) {
                       return 'Nama tidak boleh kosong';
                     }
-                    if (v.trim().length < 3) {
-                      return 'Minimal 3 karakter';
-                    }
+                    if (v.trim().length < 3) return 'Minimal 3 karakter';
                     return null;
                   },
                 ),
@@ -239,8 +228,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (v == null || v.trim().isEmpty) {
                       return 'Email tidak boleh kosong';
                     }
-                    if (!v.contains('@')) {
-                      return 'Format email tidak valid';
+                    if (!v.contains('@')) return 'Format email tidak valid';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // ── Nomor Telepon ──────────────────
+                _label('Nomor Telepon'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    hintText: 'Contoh: 08123456789',
+                    prefixIcon: Icon(Icons.phone_outlined, size: 20),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Nomor telepon tidak boleh kosong';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // ── Alamat ─────────────────────────
+                _label('Alamat'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _addressCtrl,
+                  maxLines: 2,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    hintText: 'Alamat lengkap Anda',
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.only(bottom: 20),
+                      child: Icon(Icons.location_on_outlined, size: 20),
+                    ),
+                    alignLabelWithHint: true,
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Alamat tidak boleh kosong';
                     }
                     return null;
                   },
@@ -259,11 +290,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     prefixIcon: const Icon(Icons.lock_outline, size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePass
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        size: 20,
-                      ),
+                          _obscurePass
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20),
                       onPressed: () =>
                           setState(() => _obscurePass = !_obscurePass),
                     ),
@@ -272,15 +302,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (v == null || v.isEmpty) {
                       return 'Kata sandi tidak boleh kosong';
                     }
-                    if (v.length < 8) {
-                      return 'Minimal 8 karakter';
-                    }
+                    if (v.length < 8) return 'Minimal 8 karakter';
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // ── Konfirmasi Password ────────────
+                // ── Konfirmasi ─────────────────────
                 _label('Konfirmasi Kata Sandi'),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -293,11 +321,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     prefixIcon: const Icon(Icons.lock_outline, size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscureConfirm
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        size: 20,
-                      ),
+                          _obscureConfirm
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20),
                       onPressed: () =>
                           setState(() => _obscureConfirm = !_obscureConfirm),
                     ),
@@ -323,16 +350,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
+                                strokeWidth: 2.5, color: Colors.white))
                         : const Text('Buat Akun'),
                   ),
                 ),
                 const SizedBox(height: 14),
 
-                // ── Link ke Login ──────────────────
+                // ── Link Login ─────────────────────
                 Center(
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
@@ -340,17 +364,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       text: const TextSpan(
                         text: 'Sudah punya akun? ',
                         style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                            color: AppColors.textSecondary),
                         children: [
                           TextSpan(
                             text: 'Masuk',
                             style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
@@ -385,76 +407,58 @@ class _RegisterScreenState extends State<RegisterScreen> {
             width: isSelected ? 1.8 : 0.8,
           ),
         ),
-        child: Row(
-          children: [
-            // Icon
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: isSelected ? color : AppColors.background,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                role['icon'] as IconData,
+        child: Row(children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: isSelected ? color : AppColors.background,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(role['icon'] as IconData,
                 color: isSelected ? Colors.white : AppColors.textHint,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 14),
-
-            // Teks
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    role['label'] as String,
+                size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(role['label'] as String,
                     style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? color : AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    role['desc'] as String,
+                        fontFamily: 'Poppins',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: isSelected ? color : AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text(role['desc'] as String,
                     style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
+                        fontFamily: 'Poppins',
+                        fontSize: 11,
+                        color: AppColors.textSecondary)),
+              ],
             ),
-
-            // Check icon
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              child: isSelected
-                  ? Icon(Icons.check_circle_rounded,
-                      key: const ValueKey('check'), color: color, size: 22)
-                  : const Icon(Icons.radio_button_unchecked,
-                      key: ValueKey('uncheck'),
-                      color: AppColors.border,
-                      size: 22),
-            ),
-          ],
-        ),
+          ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: isSelected
+                ? Icon(Icons.check_circle_rounded,
+                    key: const ValueKey('check'), color: color, size: 22)
+                : const Icon(Icons.radio_button_unchecked,
+                    key: ValueKey('uncheck'),
+                    color: AppColors.border,
+                    size: 22),
+          ),
+        ]),
       ),
     );
   }
 
-  Widget _label(String text) => Text(
-        text,
-        style: const TextStyle(
+  Widget _label(String text) => Text(text,
+      style: const TextStyle(
           fontFamily: 'Poppins',
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-        ),
-      );
+          color: AppColors.textPrimary));
 }
