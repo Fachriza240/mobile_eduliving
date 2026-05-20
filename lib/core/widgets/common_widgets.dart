@@ -7,9 +7,17 @@ import '../constants/api_constants.dart';
 // ============================================================
 
 String buildImageUrl(String path) {
+  if (path.isEmpty) return '';
+
+  // Kalau sudah full URL langsung return
   if (path.startsWith('http')) return path;
-  final base = ApiConstants.baseUrl.replaceAll('/api/v1', '');
-  return '$base/storage/$path';
+
+  // Hapus slash di awal jika ada
+  final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+
+  // Gunakan route /api/v1/file/ (bypass symlink Windows)
+  final base = ApiConstants.baseUrl; // sudah include /api/v1
+  return '$base/file/$cleanPath';
 }
 
 String formatRupiah(double amount, {String suffix = ''}) {
