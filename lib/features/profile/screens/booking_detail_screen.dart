@@ -2,10 +2,18 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/booking_model.dart';
 import '../../../core/widgets/common_widgets.dart';
+import 'rating_screen.dart';
 
-class BookingDetailScreen extends StatelessWidget {
+class BookingDetailScreen extends StatefulWidget {
   final BookingModel booking;
   const BookingDetailScreen({super.key, required this.booking});
+
+  @override
+  State<BookingDetailScreen> createState() => _BookingDetailScreenState();
+}
+
+class _BookingDetailScreenState extends State<BookingDetailScreen> {
+  BookingModel get booking => widget.booking;
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +34,59 @@ class BookingDetailScreen extends StatelessWidget {
               const SizedBox(height: 8),
             ],
             _buildPriceCard(),
+            if (booking.status == 'completed') ...[
+              const SizedBox(height: 8),
+              _buildRatingButton(context),
+            ],
             const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildRatingButton(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Ulasan',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          const Text(
+            'Bagikan pengalaman kamu agar mahasiswa lain bisa mendapat info yang lebih baik.',
+            style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RatingScreen(booking: booking),
+                ),
+              ),
+              icon: const Icon(Icons.star_outline_rounded, size: 18),
+              label: const Text('Beri Ulasan'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -35,6 +35,17 @@ class ApiConstants {
 
   static const String userBookmarks = '/user/bookmarks';
   static const String userBookmarksToggle = '/user/bookmarks/toggle';
+
+// ── MARKETPLACE ──────────────────────────────────
+  static const String marketplace = '/marketplace';
+  static String marketplaceDetail(int id) => '/marketplace/$id';
+  static const String userTransactions = '/user/transactions';
+  static String userTransactionDetail(int id) => '/user/transactions/$id';
+  static String userTransactionCancel(int id) =>
+      '/user/transactions/$id/cancel';
+  static String userTransactionPayment(int id) =>
+      '/user/transactions/$id/payment-proof';
+  static String buyProduct(int productId) => '/user/transactions/$productId';
 }
 
 class AppStrings {

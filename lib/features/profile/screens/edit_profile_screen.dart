@@ -5,6 +5,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -19,6 +22,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _api = ApiService();
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   String? _error;
   String? _success;
@@ -42,6 +47,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _pickPhoto() async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 80,
+    );
+    if (picked != null) {
+      setState(() => _selectedImage = File(picked.path));
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
@@ -53,14 +70,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
-      await _api.put(
-        ApiConstants.userProfile,
-        data: {
+      if (_selectedImage != null) {
+        // Pakai POST + _method PUT karena multipart
+        final formData = FormData.fromMap({
           'name': _nameCtrl.text.trim(),
           'phone': _phoneCtrl.text.trim(),
           'address': _addressCtrl.text.trim(),
-        },
-      );
+          '_method': 'PUT',
+          'profile_picture': await MultipartFile.fromFile(
+            _selectedImage!.path,
+            filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          ),
+        });
+        await _api.post(ApiConstants.userProfile, formData: formData);
+      } else {
+        await _api.put(
+          ApiConstants.userProfile,
+          data: {
+            'name': _nameCtrl.text.trim(),
+            'phone': _phoneCtrl.text.trim(),
+            'address': _addressCtrl.text.trim(),
+          },
+        );
+      }
 
       await context.read<AuthProvider>().refreshUser();
 
@@ -94,22 +126,48 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Center(
                 child: Column(
                   children: [
-                    Container(
-                      width: 88,
-                      height: 88,
-                      decoration: BoxDecoration(
-                        gradient: AppColors.primaryGradient,
-                        borderRadius: BorderRadius.circular(44),
-                      ),
-                      child: Center(
-                        child: Text(
-                          user?.initials ?? 'U',
-                          style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white),
-                        ),
+                    GestureDetector(
+                      onTap: _pickPhoto,
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 88,
+                            height: 88,
+                            decoration: BoxDecoration(
+                              gradient: AppColors.primaryGradient,
+                              borderRadius: BorderRadius.circular(44),
+                            ),
+                            child: _selectedImage != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(44),
+                                    child: Image.file(_selectedImage!,
+                                        fit: BoxFit.cover),
+                                  )
+                                : Center(
+                                    child: Text(
+                                      user?.initials ?? 'U',
+                                      style: const TextStyle(
+                                          fontFamily: 'Poppins',
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white),
+                                    ),
+                                  ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.camera_alt,
+                                  size: 14, color: Colors.white),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 12),

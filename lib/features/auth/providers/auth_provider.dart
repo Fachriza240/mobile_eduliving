@@ -210,4 +210,20 @@ class AuthProvider extends ChangeNotifier {
     _fieldErrors = null;
     notifyListeners();
   }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      await _api.put(ApiConstants.userProfile, data: {
+        'current_password': currentPassword,
+        'password': newPassword,
+        'password_confirmation': confirmPassword,
+      });
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('ApiException: ', ''));
+    }
+  }
 }
