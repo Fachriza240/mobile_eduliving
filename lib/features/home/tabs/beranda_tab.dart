@@ -7,6 +7,9 @@ import '../../../core/widgets/common_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../residence/screens/residence_list_screen.dart';
 import '../../activity/screens/activity_list_screen.dart';
+import '../../marketplace/screens/marketplace_screen.dart';
+import '../../marketplace/screens/product_detail_screen.dart';
+import '../search_screen.dart';
 
 class BerandaTab extends StatefulWidget {
   const BerandaTab({super.key});
@@ -164,9 +167,10 @@ class _BerandaTabState extends State<BerandaTab> {
       color: AppColors.primaryDeep,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: GestureDetector(
-        onTap: () {
-          // TODO: Search screen
-        },
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SearchScreen()),
+        ),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
@@ -195,6 +199,7 @@ class _BerandaTabState extends State<BerandaTab> {
   Widget _buildBody() {
     final residences = (_homeData?['residences'] as List?) ?? [];
     final activities = (_homeData?['activities'] as List?) ?? [];
+    final products = (_homeData?['products'] as List?) ?? [];
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -236,6 +241,19 @@ class _BerandaTabState extends State<BerandaTab> {
           const SizedBox(height: 12),
           _buildActivityCol(activities),
           const SizedBox(height: 24),
+
+          // ── Produk Marketplace ───────────────
+          SectionHeader(
+            title: 'Produk Terbaru',
+            seeAllColor: AppColors.market,
+            onSeeAll: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MarketplaceScreen()),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildProductRow(products),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -271,14 +289,14 @@ class _BerandaTabState extends State<BerandaTab> {
           label: 'Barang',
           color: AppColors.market,
           bg: AppColors.marketLight,
-          onTap: () => _soon('Marketplace'),
+          onTap: () => Navigator.pushNamed(context, '/marketplace'),
         ),
         _menuItem(
           icon: Icons.bookmark_rounded,
           label: 'Bookmark',
           color: AppColors.primary,
           bg: AppColors.primaryLight,
-          onTap: () => _soon('Bookmark'),
+          onTap: () => Navigator.pushNamed(context, '/bookmarks'),
         ),
       ],
     );
@@ -344,6 +362,22 @@ class _BerandaTabState extends State<BerandaTab> {
     );
   }
 
+  // ── Produk horizontal scroll ──────────────────────
+  Widget _buildProductRow(List items) {
+    if (items.isEmpty) {
+      return _emptyCard('Belum ada produk tersedia', Icons.storefront_outlined);
+    }
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length > 5 ? 5 : items.length,
+        itemBuilder: (_, i) =>
+            _ProductHCard(data: items[i] as Map<String, dynamic>),
+      ),
+    );
+  }
+
   Widget _emptyCard(String msg, IconData icon) {
     return Container(
       width: double.infinity,
@@ -365,16 +399,6 @@ class _BerandaTabState extends State<BerandaTab> {
         ],
       ),
     );
-  }
-
-  void _soon(String f) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('$f segera hadir!',
-          style: const TextStyle(fontFamily: 'Poppins')),
-      backgroundColor: AppColors.primary,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ));
   }
 }
 
@@ -599,5 +623,97 @@ class _ActivityHCard extends StatelessWidget {
     } catch (_) {
       return d.toString();
     }
+  }
+}
+
+// ── Card Produk Horizontal ───────────────────────────
+class _ProductHCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const _ProductHCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final images = data['images'] as List?;
+    final imgPath =
+        images != null && images.isNotEmpty ? images.first.toString() : null;
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProductDetailScreen(productId: data['id'] as int),
+        ),
+      ),
+      child: Container(
+        width: 175,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border, width: 0.8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            EduImage(
+              path: imgPath,
+              height: 110,
+              borderRadius: 12,
+              placeholderIcon: Icons.storefront_outlined,
+              placeholderColor: AppColors.marketLight,
+              iconColor: AppColors.market,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(data['name'] ?? '-',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 3),
+                  Row(children: [
+                    const Icon(Icons.store_outlined,
+                        size: 11, color: AppColors.textHint),
+                    const SizedBox(width: 2),
+                    Expanded(
+                      child: Text(data['seller']?['name'] ?? '-',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 10,
+                              color: AppColors.textSecondary)),
+                    ),
+                  ]),
+                  const SizedBox(height: 6),
+                  Text(
+                    _priceFormat(data['price']),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.market,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _priceFormat(dynamic p) {
+    if (p == null) return 'Gratis';
+    final v = double.tryParse(p.toString()) ?? 0;
+    if (v == 0) return 'Gratis';
+    return 'Rp ${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
   }
 }

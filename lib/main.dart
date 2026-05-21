@@ -12,6 +12,13 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
 import 'features/home/home_screen.dart';
 
+import 'features/bookmark/providers/bookmark_provider.dart';
+import 'features/marketplace/providers/marketplace_provider.dart';
+import 'features/bookmark/screens/bookmark_screen.dart';
+import 'features/marketplace/screens/marketplace_screen.dart';
+import 'features/marketplace/screens/transaction_list_screen.dart';
+import 'features/profile/screens/change_password_screen.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -41,6 +48,9 @@ class EduLivingApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ResidenceProvider()),
         ChangeNotifierProvider(create: (_) => ActivityProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
+        ChangeNotifierProvider(create: (_) => BookmarkProvider()),
+        ChangeNotifierProvider(create: (_) => MarketplaceProvider()),
+        ChangeNotifierProvider(create: (_) => MarketplaceTransactionProvider()),
       ],
       child: MaterialApp(
         title: 'EduLiving',
@@ -52,6 +62,10 @@ class EduLivingApp extends StatelessWidget {
           '/login': (_) => const LoginScreen(),
           '/register': (_) => const RegisterScreen(),
           '/home': (_) => const HomeScreen(),
+          '/bookmarks':        (_) => const BookmarkScreen(),
+          '/marketplace':      (_) => const MarketplaceScreen(),
+          '/transactions':     (_) => const TransactionListScreen(),
+          '/change-password':  (_) => const ChangePasswordScreen(),
         },
         onUnknownRoute: (_) => MaterialPageRoute(
           builder: (_) => const LoginScreen(),

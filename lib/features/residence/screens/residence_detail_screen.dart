@@ -6,6 +6,7 @@ import '../../../core/widgets/common_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/residence_provider.dart';
 import 'residence_booking_screen.dart';
+import '../../bookmark/providers/bookmark_provider.dart';
 
 class ResidenceDetailScreen extends StatefulWidget {
   final int id;
@@ -74,7 +75,7 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
             if (isLoggedIn)
               GestureDetector(
                 onTap: () =>
-                    context.read<ResidenceProvider>().toggleBookmark(r.id),
+                    context.read<BookmarkProvider>().toggle('Residence', r.id),
                 child: Container(
                   margin: const EdgeInsets.all(8),
                   padding: const EdgeInsets.all(8),
