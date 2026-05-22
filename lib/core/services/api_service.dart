@@ -33,10 +33,7 @@ class ApiService {
             const Duration(milliseconds: ApiConstants.connectTimeout),
         receiveTimeout:
             const Duration(milliseconds: ApiConstants.receiveTimeout),
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Accept': 'application/json'},
       ),
     );
 
@@ -47,6 +44,9 @@ class ApiService {
           final token = await StorageHelper.getToken();
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
+          }
+          if (options.data is! FormData) {
+            options.headers['Content-Type'] = 'application/json';
           }
           return handler.next(options);
         },
@@ -95,13 +95,32 @@ class ApiService {
     }
   }
 
-  // ── PUT ──────────────────────────────────────────────
+  // ── PUT (support FormData dengan _method spoofing untuk Laravel) ──
   Future<Map<String, dynamic>> put(
+    String path, {
+    Map<String, dynamic>? data,
+    FormData? formData,
+  }) async {
+    try {
+      if (formData != null) {
+        formData.fields.add(const MapEntry('_method', 'PUT'));
+        final res = await _dio.post(path, data: formData);
+        return _handle(res);
+      }
+      final res = await _dio.put(path, data: data);
+      return _handle(res);
+    } on DioException catch (e) {
+      throw _error(e);
+    }
+  }
+
+  // ── PATCH ────────────────────────────────────────────
+  Future<Map<String, dynamic>> patch(
     String path, {
     Map<String, dynamic>? data,
   }) async {
     try {
-      final res = await _dio.put(path, data: data);
+      final res = await _dio.patch(path, data: data);
       return _handle(res);
     } on DioException catch (e) {
       throw _error(e);
@@ -159,11 +178,15 @@ class ApiService {
           msg = 'Sesi habis. Silakan masuk kembali.';
           StorageHelper.clearAll();
         } else if (code == 403) {
-          msg = 'Anda tidak memiliki akses ke fitur ini.';
+          msg = body is Map
+              ? (body['message'] ?? 'Akses ditolak.')
+              : 'Akses ditolak.';
         } else if (code == 404) {
           msg = 'Data tidak ditemukan.';
         } else if (code == 422) {
-          msg = body?['message'] ?? 'Data tidak valid.';
+          msg = body is Map
+              ? (body['message'] ?? 'Data tidak valid.')
+              : 'Data tidak valid.';
         } else if (code != null && code >= 500) {
           msg = 'Terjadi kesalahan pada server. Coba lagi nanti.';
         }

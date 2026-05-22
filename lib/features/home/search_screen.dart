@@ -70,6 +70,7 @@ class _SearchScreenState extends State<SearchScreen> {
           controller: _ctrl,
           focusNode: _focus,
           style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+          cursorColor: Colors.white,
           decoration: InputDecoration(
             hintText: 'Cari hunian, acara, atau barang...',
             hintStyle: TextStyle(

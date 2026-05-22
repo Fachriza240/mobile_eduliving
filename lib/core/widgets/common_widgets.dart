@@ -355,17 +355,20 @@ class SectionHeader extends StatelessWidget {
 class EmptyState extends StatelessWidget {
   final String message;
   final IconData icon;
+  final Color? iconColor;
+  // Gunakan action (Widget) ATAU actionLabel+onAction (String+callback)
+  final Widget? action;
   final String? actionLabel;
   final VoidCallback? onAction;
-  final Color? iconColor;
 
   const EmptyState({
     super.key,
     required this.message,
     this.icon = Icons.inbox_rounded,
+    this.iconColor,
+    this.action,
     this.actionLabel,
     this.onAction,
-    this.iconColor,
   });
 
   @override
@@ -376,7 +379,14 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: iconColor ?? AppColors.textHint),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: (iconColor ?? AppColors.textHint).withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 48, color: iconColor ?? AppColors.textHint),
+            ),
             const SizedBox(height: 16),
             Text(message,
                 textAlign: TextAlign.center,
@@ -385,7 +395,10 @@ class EmptyState extends StatelessWidget {
                     fontSize: 14,
                     color: AppColors.textSecondary,
                     height: 1.5)),
-            if (actionLabel != null && onAction != null) ...[
+            if (action != null) ...[
+              const SizedBox(height: 20),
+              action!,
+            ] else if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: onAction,
@@ -407,12 +420,12 @@ class EmptyState extends StatelessWidget {
 
 class ErrorState extends StatelessWidget {
   final String message;
-  final VoidCallback onRetry;
+  final VoidCallback? onRetry;
 
   const ErrorState({
     super.key,
     required this.message,
-    required this.onRetry,
+    this.onRetry,
   });
 
   @override
@@ -423,8 +436,15 @@ class ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.wifi_off_rounded,
-                size: 64, color: AppColors.textHint),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: AppColors.errorLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cloud_off_rounded,
+                  size: 48, color: AppColors.error),
+            ),
             const SizedBox(height: 16),
             Text(message,
                 textAlign: TextAlign.center,
@@ -433,13 +453,15 @@ class ErrorState extends StatelessWidget {
                     fontSize: 14,
                     color: AppColors.textSecondary,
                     height: 1.5)),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Coba Lagi'),
-              style: ElevatedButton.styleFrom(minimumSize: const Size(160, 44)),
-            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Coba Lagi'),
+                style: ElevatedButton.styleFrom(minimumSize: const Size(160, 44)),
+              ),
+            ],
           ],
         ),
       ),
