@@ -23,25 +23,30 @@ class ApiService {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(milliseconds: ApiConstants.connectTimeout),
-        receiveTimeout: const Duration(milliseconds: ApiConstants.receiveTimeout),
+        connectTimeout:
+            const Duration(milliseconds: ApiConstants.connectTimeout),
+        receiveTimeout:
+            const Duration(milliseconds: ApiConstants.receiveTimeout),
         headers: {'Accept': 'application/json'},
       ),
     );
 
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await StorageHelper.getToken();
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        if (options.data is! FormData) {
-          options.headers['Content-Type'] = 'application/json';
-        }
-        return handler.next(options);
-      },
-      onError: (e, handler) => handler.next(e),
-    ));
+    // Interceptor — tambah token otomatis ke setiap request
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await StorageHelper.getToken();
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          if (options.data is! FormData) {
+            options.headers['Content-Type'] = 'application/json';
+          }
+          return handler.next(options);
+        },
+        onError: (e, handler) => handler.next(e),
+      ),
+    );
 
     _dio.interceptors.add(LogInterceptor(
       requestBody: true,
@@ -75,7 +80,11 @@ class ApiService {
   }
 
   // ── PUT (support FormData dengan _method spoofing untuk Laravel) ──
-  Future<Map<String, dynamic>> put(String path, {Map<String, dynamic>? data, FormData? formData}) async {
+  Future<Map<String, dynamic>> put(
+    String path, {
+    Map<String, dynamic>? data,
+    FormData? formData,
+  }) async {
     try {
       if (formData != null) {
         formData.fields.add(const MapEntry('_method', 'PUT'));
@@ -83,6 +92,19 @@ class ApiService {
         return _handle(res);
       }
       final res = await _dio.put(path, data: data);
+      return _handle(res);
+    } on DioException catch (e) {
+      throw _error(e);
+    }
+  }
+
+  // ── PATCH ────────────────────────────────────────────
+  Future<Map<String, dynamic>> patch(
+    String path, {
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      final res = await _dio.patch(path, data: data);
       return _handle(res);
     } on DioException catch (e) {
       throw _error(e);
@@ -138,11 +160,15 @@ class ApiService {
           msg = 'Sesi habis. Silakan masuk kembali.';
           StorageHelper.clearAll();
         } else if (code == 403) {
-          msg = body is Map ? (body['message'] ?? 'Akses ditolak.') : 'Akses ditolak.';
+          msg = body is Map
+              ? (body['message'] ?? 'Akses ditolak.')
+              : 'Akses ditolak.';
         } else if (code == 404) {
           msg = 'Data tidak ditemukan.';
         } else if (code == 422) {
-          msg = body is Map ? (body['message'] ?? 'Data tidak valid.') : 'Data tidak valid.';
+          msg = body is Map
+              ? (body['message'] ?? 'Data tidak valid.')
+              : 'Data tidak valid.';
         } else if (code != null && code >= 500) {
           msg = 'Terjadi kesalahan pada server. Coba lagi nanti.';
         }

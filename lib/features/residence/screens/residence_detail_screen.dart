@@ -73,19 +73,29 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
           leading: _backBtn(),
           actions: [
             if (isLoggedIn)
-              GestureDetector(
-                onTap: () =>
-                    context.read<BookmarkProvider>().toggle('Residence', r.id),
-                child: Container(
-                  margin: const EdgeInsets.all(8),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.bookmark_border_rounded,
-                      size: 20, color: AppColors.residence),
-                ),
+              Consumer<BookmarkProvider>(
+                builder: (context, bookmarkProv, _) {
+                  final isBookmarked =
+                      bookmarkProv.isBookmarked('Residence', r.id);
+                  return GestureDetector(
+                    onTap: () => bookmarkProv.toggle('Residence', r.id),
+                    child: Container(
+                      margin: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        isBookmarked
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
+                        size: 20,
+                        color: AppColors.residence,
+                      ),
+                    ),
+                  );
+                },
               ),
           ],
           flexibleSpace: FlexibleSpaceBar(

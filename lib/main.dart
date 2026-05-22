@@ -25,6 +25,13 @@ import 'features/bookmark/screens/bookmark_screen.dart';
 import 'features/marketplace/screens/marketplace_screen.dart';
 import 'features/marketplace/screens/transaction_list_screen.dart';
 import 'features/profile/screens/change_password_screen.dart';
+import 'features/notification/notification_screen.dart';
+
+// Provider 
+import 'features/provider/providers/provider_dashboard_provider.dart';
+import 'features/provider/providers/provider_residence_provider.dart';
+import 'features/provider/providers/provider_activity_provider.dart';
+import 'features/provider/providers/provider_booking_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,6 +73,10 @@ class EduLivingApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => BookmarkProvider()),
         ChangeNotifierProvider(create: (_) => MarketplaceProvider()),
         ChangeNotifierProvider(create: (_) => MarketplaceTransactionProvider()),
+        ChangeNotifierProvider(create: (_) => ProviderDashboardProvider()),
+        ChangeNotifierProvider(create: (_) => ProviderResidenceProvider()),
+        ChangeNotifierProvider(create: (_) => ProviderActivityProvider()),
+        ChangeNotifierProvider(create: (_) => ProviderBookingProvider()),
 
       ],
       child: MaterialApp(
@@ -81,11 +92,11 @@ class EduLivingApp extends StatelessWidget {
           '/home': (_) => const RootScreen(),
 
           '/home': (_) => const HomeScreen(),
-          '/bookmarks':        (_) => const BookmarkScreen(),
-          '/marketplace':      (_) => const MarketplaceScreen(),
-          '/transactions':     (_) => const TransactionListScreen(),
-          '/change-password':  (_) => const ChangePasswordScreen(),
-
+          '/bookmarks': (_) => const BookmarkScreen(),
+          '/marketplace': (_) => const MarketplaceScreen(),
+          '/transactions': (_) => const TransactionListScreen(),
+          '/change-password': (_) => const ChangePasswordScreen(),
+          '/notifications': (_) => const NotificationScreen(),
         },
         onUnknownRoute: (_) => MaterialPageRoute(
           builder: (_) => const LoginScreen(),

@@ -12,54 +12,66 @@ class BookmarkModel {
   });
 
   factory BookmarkModel.fromJson(Map<String, dynamic> json) {
+    // Backend return 'type' bukan 'bookmarkable_type'
+    // dan 'item' bukan 'bookmarkable'
+    final rawType = json['type']?.toString() ?? '';
+
     return BookmarkModel(
       id: json['id'],
-      bookmarkableType: json['bookmarkable_type'] ?? '',
+      bookmarkableType: _toFlutterType(rawType),
       bookmarkable: BookmarkableItem.fromJson(
-        json['bookmarkable'] ?? {},
-        json['bookmarkable_type'] ?? '',
+        json['item'] ?? {},
       ),
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
+  }
+
+  // Backend kirim 'Residence'|'Activity'|'MarketplaceProduct'
+  // sudah cocok, tapi jaga-jaga jika ada variasi
+  static String _toFlutterType(String raw) {
+    switch (raw.toLowerCase()) {
+      case 'residence':
+        return 'Residence';
+      case 'activity':
+        return 'Activity';
+      case 'marketplaceproduct':
+        return 'MarketplaceProduct';
+      default:
+        return raw; // pakai apa adanya
+    }
   }
 }
 
 class BookmarkableItem {
   final int id;
   final String name;
-  final String? address;    // hunian
-  final String? location;   // acara
+  final String? address;
   final double price;
   final List<String> images;
   final double? averageRating;
-  final String type; // Residence | Activity | MarketplaceProduct
 
   BookmarkableItem({
     required this.id,
     required this.name,
     this.address,
-    this.location,
     required this.price,
     required this.images,
     this.averageRating,
-    required this.type,
   });
 
-  String get displayAddress => address ?? location ?? '';
+  String get displayAddress => address ?? '';
   String get firstImage => images.isNotEmpty ? images.first : '';
 
-  factory BookmarkableItem.fromJson(Map<String, dynamic> json, String type) {
+  factory BookmarkableItem.fromJson(Map<String, dynamic> json) {
     return BookmarkableItem(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       address: json['address'],
-      location: json['location'],
       price: (json['price'] ?? 0).toDouble(),
       images: List<String>.from(json['images'] ?? []),
       averageRating: json['average_rating'] != null
           ? (json['average_rating']).toDouble()
           : null,
-      type: type,
     );
   }
 }
