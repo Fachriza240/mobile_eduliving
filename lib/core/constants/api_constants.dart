@@ -38,6 +38,7 @@ class ApiConstants {
   static const String userBookmarks       = '/user/bookmarks';
   static const String userBookmarksToggle = '/user/bookmarks/toggle';
 
+
   // ── PROVIDER HUNIAN ───────────────────────────────────
   static const String providerResidenceDashboard = '/provider/residence/dashboard';
   static const String providerResidences         = '/provider/residence/residences';
@@ -65,4 +66,44 @@ class ApiConstants {
   static String providerEventBookingDetail(int id)  => '/provider/event/bookings/$id';
   static String providerEventBookingApprove(int id) => '/provider/event/bookings/$id/approve';
   static String providerEventBookingReject(int id)  => '/provider/event/bookings/$id/reject';
+
+// ── MARKETPLACE ──────────────────────────────────
+  static const String marketplace = '/marketplace';
+  static String marketplaceDetail(int id) => '/marketplace/$id';
+  static const String userTransactions = '/user/transactions';
+  static String userTransactionDetail(int id) => '/user/transactions/$id';
+  static String userTransactionCancel(int id) =>
+      '/user/transactions/$id/cancel';
+  static String userTransactionPayment(int id) =>
+      '/user/transactions/$id/payment-proof';
+  static String buyProduct(int productId) => '/user/transactions/$productId';
+}
+
+class AppStrings {
+  AppStrings._();
+
+  static const String appName = 'EduLiving';
+  static const String appTagline = 'Platform Layanan Mahasiswa';
+
+  // Nav
+  static const String navHome = 'Beranda';
+  static const String navResidence = 'Hunian';
+  static const String navActivity = 'Acara';
+  static const String navProfile = 'Profil';
+
+  // Common
+  static const String loading = 'Memuat...';
+  static const String retry = 'Coba Lagi';
+  static const String cancel = 'Batal';
+  static const String save = 'Simpan';
+  static const String seeAll = 'Lihat Semua';
+  static const String noData = 'Belum ada data';
+  static const String gratis = 'Gratis';
+
+  // Error
+  static const String errorNetwork = 'Tidak dapat terhubung ke server.';
+  static const String errorServer = 'Terjadi kesalahan pada server.';
+  static const String errorUnauthorized = 'Sesi habis. Silakan masuk kembali.';
+  static const String errorGeneral = 'Terjadi kesalahan. Coba lagi.';
+
 }

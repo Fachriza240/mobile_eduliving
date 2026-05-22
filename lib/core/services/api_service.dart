@@ -51,6 +51,9 @@ class ApiService {
     ));
   }
 
+  // Expose dio untuk provider yang butuh akses langsung
+  Dio get dio => _dio;
+
   // ── GET ──────────────────────────────────────────────
   Future<Map<String, dynamic>> get(String path, {Map<String, dynamic>? queryParameters}) async {
     try {

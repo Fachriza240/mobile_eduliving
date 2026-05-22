@@ -7,6 +7,7 @@ import '../../../core/services/api_service.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/activity_provider.dart';
+import '../../bookmark/providers/bookmark_provider.dart';
 
 class ActivityDetailScreen extends StatefulWidget {
   final int id;
@@ -74,8 +75,9 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           actions: [
             if (isLoggedIn)
               GestureDetector(
-                onTap: () =>
-                    context.read<ActivityProvider>().toggleBookmark(a.id),
+                onTap: () => context
+                    .read<BookmarkProvider>()
+                    .toggle('Activity', widget.id),
                 child: Container(
                   margin: const EdgeInsets.all(8),
                   padding: const EdgeInsets.all(8),
