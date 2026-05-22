@@ -402,8 +402,7 @@ class EmptyState extends StatelessWidget {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: onAction,
-                style:
-                    ElevatedButton.styleFrom(minimumSize: const Size(140, 44)),
+                style: ElevatedButton.styleFrom(minimumSize: const Size(140, 44)),
                 child: Text(actionLabel!),
               ),
             ],

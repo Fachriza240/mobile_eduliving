@@ -2,23 +2,17 @@ import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
 import '../utils/storage_helper.dart';
 
-// ── Custom Exception ─────────────────────────────────
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
   final Map<String, dynamic>? errors;
 
-  ApiException({
-    required this.message,
-    this.statusCode,
-    this.errors,
-  });
+  ApiException({required this.message, this.statusCode, this.errors});
 
   @override
   String toString() => message;
 }
 
-// ── API Service ──────────────────────────────────────
 class ApiService {
   late final Dio _dio;
 
@@ -54,25 +48,19 @@ class ApiService {
       ),
     );
 
-    // Log request & response (nonaktifkan di production)
-    _dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        error: true,
-        logPrint: (o) => print('[EduLiving] $o'),
-      ),
-    );
+    _dio.interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+      error: true,
+      logPrint: (o) => print('[EduLiving] $o'),
+    ));
   }
 
   // Expose dio untuk provider yang butuh akses langsung
   Dio get dio => _dio;
 
   // ── GET ──────────────────────────────────────────────
-  Future<Map<String, dynamic>> get(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-  }) async {
+  Future<Map<String, dynamic>> get(String path, {Map<String, dynamic>? queryParameters}) async {
     try {
       final res = await _dio.get(path, queryParameters: queryParameters);
       return _handle(res);
@@ -82,11 +70,7 @@ class ApiService {
   }
 
   // ── POST ─────────────────────────────────────────────
-  Future<Map<String, dynamic>> post(
-    String path, {
-    Map<String, dynamic>? data,
-    FormData? formData,
-  }) async {
+  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? data, FormData? formData}) async {
     try {
       final res = await _dio.post(path, data: formData ?? data);
       return _handle(res);
@@ -127,11 +111,18 @@ class ApiService {
     }
   }
 
+  // ── PATCH ────────────────────────────────────────────
+  Future<Map<String, dynamic>> patch(String path, {Map<String, dynamic>? data}) async {
+    try {
+      final res = await _dio.patch(path, data: data);
+      return _handle(res);
+    } on DioException catch (e) {
+      throw _error(e);
+    }
+  }
+
   // ── DELETE ───────────────────────────────────────────
-  Future<Map<String, dynamic>> delete(
-    String path, {
-    Map<String, dynamic>? data,
-  }) async {
+  Future<Map<String, dynamic>> delete(String path, {Map<String, dynamic>? data}) async {
     try {
       final res = await _dio.delete(path, data: data);
       return _handle(res);
@@ -140,29 +131,20 @@ class ApiService {
     }
   }
 
-  // ── Response Handler ─────────────────────────────────
   Map<String, dynamic> _handle(Response res) {
     final data = res.data;
     if (data is Map<String, dynamic>) return data;
     return {'data': data};
   }
 
-  // ── Error Handler ────────────────────────────────────
   ApiException _error(DioException e) {
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return ApiException(
-          message: 'Koneksi timeout. Periksa internet Anda.',
-        );
-
+        return ApiException(message: 'Koneksi timeout. Periksa internet Anda.');
       case DioExceptionType.connectionError:
-        return ApiException(
-          message:
-              'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
-        );
-
+        return ApiException(message: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.');
       case DioExceptionType.badResponse:
         final code = e.response?.statusCode;
         final body = e.response?.data;
@@ -192,7 +174,6 @@ class ApiService {
         }
 
         return ApiException(message: msg, statusCode: code, errors: errs);
-
       default:
         return ApiException(message: 'Terjadi kesalahan yang tidak diketahui.');
     }
