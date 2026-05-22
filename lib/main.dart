@@ -11,6 +11,13 @@ import 'features/splash/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
 import 'features/home/home_screen.dart';
+import 'features/provider/provider_home_screen.dart'; // RootScreen
+
+// Provider (penyedia) — BARU
+import 'features/provider/providers/provider_dashboard_provider.dart';
+import 'features/provider/providers/provider_residence_provider.dart';
+import 'features/provider/providers/provider_activity_provider.dart';
+import 'features/provider/providers/provider_booking_provider.dart';
 
 import 'features/bookmark/providers/bookmark_provider.dart';
 import 'features/marketplace/providers/marketplace_provider.dart';
@@ -44,13 +51,22 @@ class EduLivingApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Role: Mahasiswa
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ResidenceProvider()),
         ChangeNotifierProvider(create: (_) => ActivityProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
+
+        // Role: Penyedia
+        ChangeNotifierProvider(create: (_) => ProviderDashboardProvider()),
+        ChangeNotifierProvider(create: (_) => ProviderResidenceProvider()),
+        ChangeNotifierProvider(create: (_) => ProviderActivityProvider()),
+        ChangeNotifierProvider(create: (_) => ProviderBookingProvider()),
+
         ChangeNotifierProvider(create: (_) => BookmarkProvider()),
         ChangeNotifierProvider(create: (_) => MarketplaceProvider()),
         ChangeNotifierProvider(create: (_) => MarketplaceTransactionProvider()),
+
       ],
       child: MaterialApp(
         title: 'EduLiving',
@@ -61,11 +77,15 @@ class EduLivingApp extends StatelessWidget {
           '/': (_) => const SplashScreen(),
           '/login': (_) => const LoginScreen(),
           '/register': (_) => const RegisterScreen(),
+
+          '/home': (_) => const RootScreen(),
+
           '/home': (_) => const HomeScreen(),
           '/bookmarks':        (_) => const BookmarkScreen(),
           '/marketplace':      (_) => const MarketplaceScreen(),
           '/transactions':     (_) => const TransactionListScreen(),
           '/change-password':  (_) => const ChangePasswordScreen(),
+
         },
         onUnknownRoute: (_) => MaterialPageRoute(
           builder: (_) => const LoginScreen(),
