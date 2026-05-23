@@ -67,8 +67,8 @@ class BookmarkableItem {
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       address: json['address'],
-      price: (json['price'] ?? 0).toDouble(),
-      images: List<String>.from(json['images'] ?? []),
+      price: double.tryParse(json['price'].toString()) ?? 0.0,
+      images: (json['images'] as List? ?? []).map((e) => e.toString()).toList(),
       averageRating: json['average_rating'] != null
           ? (json['average_rating']).toDouble()
           : null,
