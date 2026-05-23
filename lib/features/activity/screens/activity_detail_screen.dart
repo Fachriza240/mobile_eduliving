@@ -8,6 +8,7 @@ import '../../../core/widgets/common_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/activity_provider.dart';
 import '../../bookmark/providers/bookmark_provider.dart';
+import 'activity_booking_screen.dart';
 
 class ActivityDetailScreen extends StatefulWidget {
   final int id;
@@ -98,7 +99,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             background: _buildGallery(a.images),
           ),
         ),
-
         SliverToBoxAdapter(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,7 +282,12 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           _loginRequired();
           return;
         }
-        _showRegSheet(a);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ActivityBookingScreen(activity: a),
+          ),
+        );
       },
       icon: const Icon(Icons.how_to_reg_rounded, size: 18),
       label: const Text('Daftar Sekarang'),
@@ -298,7 +303,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           decoration: BoxDecoration(
             color: AppColors.activityLight,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.activity.withValues(alpha: 0.15)),
+            border:
+                Border.all(color: AppColors.activity.withValues(alpha: 0.15)),
           ),
           child: Row(children: [
             Container(
@@ -593,7 +599,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                                               .toIso8601String()
                                               .split('T')
                                               .first
-                                          : a.eventDate.toString().split(' ').first)
+                                          : a.eventDate
+                                              .toString()
+                                              .split(' ')
+                                              .first)
                                       : DateTime.now()
                                           .toIso8601String()
                                           .split('T')
@@ -675,8 +684,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
         ),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.activity),
+            style:
+                ElevatedButton.styleFrom(backgroundColor: AppColors.activity),
             onPressed: () => Navigator.pop(context),
             child: const Text('Oke, Terima Kasih!'),
           ),
@@ -709,7 +718,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       return Container(
         color: AppColors.activityLight,
         child: const Center(
-          child: Icon(Icons.event_outlined, size: 64, color: AppColors.activity),
+          child:
+              Icon(Icons.event_outlined, size: 64, color: AppColors.activity),
         ),
       );
     }

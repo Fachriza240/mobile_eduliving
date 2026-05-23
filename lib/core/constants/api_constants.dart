@@ -82,6 +82,29 @@ class ApiConstants {
   static String providerEventBookingReject(int id) =>
       '/provider/event/bookings/$id/reject';
 
+// ── PROVIDER MARKETPLACE ─────────────────────────
+  static const String providerMarketplaceProducts =
+      '/provider/marketplace/products';
+  static String providerMarketplaceProductUpdate(int id) =>
+      '/provider/marketplace/products/$id';
+  static String providerMarketplaceProductDelete(int id) =>
+      '/provider/marketplace/products/$id';
+  static String providerMarketplaceProductToggle(int id) =>
+      '/provider/marketplace/products/$id/toggle-status';
+
+  static const String providerMarketplaceOrders =
+      '/provider/marketplace/orders';
+  static String providerMarketplaceOrderDetail(int id) =>
+      '/provider/marketplace/orders/$id';
+  static String providerMarketplaceOrderConfirm(int id) =>
+      '/provider/marketplace/orders/$id/confirm';
+  static String providerMarketplaceOrderShip(int id) =>
+      '/provider/marketplace/orders/$id/ship';
+  static String providerMarketplaceOrderComplete(int id) =>
+      '/provider/marketplace/orders/$id/complete';
+  static String providerMarketplaceOrderReject(int id) =>
+      '/provider/marketplace/orders/$id/reject';
+
 // ── MARKETPLACE ──────────────────────────────────
   static const String marketplace = '/marketplace';
   static String marketplaceDetail(int id) => '/marketplace/$id';

@@ -1,9 +1,8 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/residence_model.dart';
@@ -21,20 +20,42 @@ class ResidenceBookingScreen extends StatefulWidget {
 
 class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
   final _api = ApiService();
+  final _notesCtrl = TextEditingController();
+  final _picker = ImagePicker();
 
-  DateTime? _checkInDate;
-  int _durationMonths = 1; // durasi sewa dalam bulan
+  DateTime? _startDate;
+  int _durationMonths = 1;
+  bool _termsAccepted = false;
   bool _isLoading = false;
   String? _error;
 
-  // Dokumen identitas — wajib min 1 (KTP / surat keterangan dll)
-  final List<File> _documents = [];
-  bool _isPickingDoc = false;
-  final _picker = ImagePicker();
+  // Dokumen
+  File? _ktpFile;
+  String? _ktpFileName;
+  File? _kkFile;
+  String? _kkFileName;
 
-  double get _total => widget.residence.discountedPrice * _durationMonths;
+  static const _durations = [1, 2, 3, 6, 12];
 
-  Future<void> _pickCheckInDate() async {
+  @override
+  void dispose() {
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  DateTime? get _endDate {
+    if (_startDate == null) return null;
+    return DateTime(
+      _startDate!.year,
+      _startDate!.month + _durationMonths,
+      _startDate!.day,
+    );
+  }
+
+  double get _pricePerMonth => widget.residence.discountedPrice;
+  double get _total => _pricePerMonth * _durationMonths;
+
+  Future<void> _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -48,108 +69,43 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
         child: child!,
       ),
     );
+    if (picked != null)
+      setState(() {
+        _startDate = picked;
+        _error = null;
+      });
+  }
+
+  Future<void> _pickDocument(bool isKtp) async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
     if (picked != null) {
       setState(() {
-        _checkInDate = picked;
-        _error = null;
+        if (isKtp) {
+          _ktpFile = File(picked.path);
+          _ktpFileName = picked.name;
+        } else {
+          _kkFile = File(picked.path);
+          _kkFileName = picked.name;
+        }
       });
     }
   }
 
-  Future<void> _addDocument() async {
-    setState(() => _isPickingDoc = true);
-    try {
-      // Tampilkan pilihan: ambil foto atau pilih file
-      final choice = await showModalBottomSheet<String>(
-        context: context,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-        builder: (_) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Tambah Dokumen',
-                  style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.camera_alt_outlined,
-                    color: AppColors.residence),
-                title: const Text('Foto KTP / Dokumen',
-                    style: TextStyle(fontFamily: 'Poppins')),
-                onTap: () => Navigator.pop(_, 'camera'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined,
-                    color: AppColors.residence),
-                title: const Text('Pilih dari Galeri',
-                    style: TextStyle(fontFamily: 'Poppins')),
-                onTap: () => Navigator.pop(_, 'gallery'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.picture_as_pdf_outlined,
-                    color: AppColors.residence),
-                title: const Text('Pilih File PDF / Gambar',
-                    style: TextStyle(fontFamily: 'Poppins')),
-                onTap: () => Navigator.pop(_, 'file'),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      if (choice == null) return;
-
-      if (choice == 'camera') {
-        final picked = await _picker.pickImage(
-          source: ImageSource.camera,
-          imageQuality: 80,
-        );
-        if (picked != null) {
-          setState(() => _documents.add(File(picked.path)));
-        }
-      } else if (choice == 'gallery') {
-        final picked = await _picker.pickImage(
-          source: ImageSource.gallery,
-          imageQuality: 80,
-        );
-        if (picked != null) {
-          setState(() => _documents.add(File(picked.path)));
-        }
-      } else if (choice == 'file') {
-        final result = await FilePicker.platform.pickFiles(
-          type: FileType.custom,
-          allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-        );
-        if (result != null && result.files.single.path != null) {
-          setState(() => _documents.add(File(result.files.single.path!)));
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Gagal menambah dokumen: $e',
-              style: const TextStyle(fontFamily: 'Poppins')),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
-    } finally {
-      setState(() => _isPickingDoc = false);
-    }
-  }
-
   Future<void> _submit() async {
-    if (_checkInDate == null) {
+    // Validasi
+    if (_startDate == null) {
       setState(() => _error = 'Pilih tanggal masuk terlebih dahulu');
       return;
     }
-    if (_documents.isEmpty) {
-      setState(() => _error = 'Upload minimal 1 dokumen identitas (KTP/SIM)');
+    if (_ktpFile == null) {
+      setState(() => _error = 'Upload KTP terlebih dahulu (wajib)');
+      return;
+    }
+    if (!_termsAccepted) {
+      setState(() => _error = 'Anda harus menyetujui syarat & ketentuan');
       return;
     }
 
@@ -159,32 +115,35 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
     });
 
     try {
-      // Kirim sebagai multipart karena ada file dokumen
+      // Gunakan FormData karena ada file upload
       final formData = FormData.fromMap({
-        'bookable_id': widget.residence.id,
-        // FIX: backend butuh 'residence' bukan 'App\\Models\\Residence'
         'bookable_type': 'residence',
-        // FIX: backend butuh check_in_date (tanggal masuk)
-        'check_in_date': _checkInDate!.toIso8601String().split('T').first,
-        // FIX: backend butuh duration_months bukan start_date/end_date
+        'bookable_id': widget.residence.id,
+        'check_in_date': _startDate!.toIso8601String().split('T').first,
+        'check_out_date': _endDate!.toIso8601String().split('T').first,
         'duration_months': _durationMonths,
+        if (_notesCtrl.text.trim().isNotEmpty) 'notes': _notesCtrl.text.trim(),
       });
 
-      // Tambah dokumen ke form
-      for (int i = 0; i < _documents.length; i++) {
-        final file = _documents[i];
-        final ext = file.path.split('.').last.toLowerCase();
+      // Tambah dokumen — backend expect documents[] array
+      formData.files.add(MapEntry(
+        'documents[]',
+        await MultipartFile.fromFile(
+          _ktpFile!.path,
+          filename: 'ktp_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ),
+      ));
+      if (_kkFile != null) {
         formData.files.add(MapEntry(
           'documents[]',
           await MultipartFile.fromFile(
-            file.path,
-            filename: 'doc_${i}_${DateTime.now().millisecondsSinceEpoch}.$ext',
+            _kkFile!.path,
+            filename: 'kk_${DateTime.now().millisecondsSinceEpoch}.jpg',
           ),
         ));
       }
 
       await _api.post(ApiConstants.userBookings, formData: formData);
-
       if (!mounted) return;
       _showSuccess();
     } catch (e) {
@@ -215,14 +174,14 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
                   size: 40, color: AppColors.residence),
             ),
             const SizedBox(height: 16),
-            const Text('Pemesanan Dikirim!',
+            const Text('Booking Terkirim!',
                 style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 18,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             const Text(
-              'Pemesanan sedang menunggu persetujuan provider. Biasanya 1–2 hari kerja.',
+              'Booking sedang menunggu persetujuan provider. Biasanya 1–2 hari kerja.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontFamily: 'Poppins',
@@ -233,16 +192,17 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
           ],
         ),
         actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.residence),
-            onPressed: () {
-              Navigator.of(context)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.residence),
+              onPressed: () => Navigator.of(context)
                 ..pop()
                 ..pop()
-                ..pop();
-            },
-            child: const Text('Lihat Booking Saya'),
+                ..pop(),
+              child: const Text('Lihat Booking Saya'),
+            ),
           ),
         ],
       ),
@@ -251,7 +211,7 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.read<AuthProvider>().user;
+    final r = widget.residence;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -270,163 +230,106 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Ringkasan Hunian ─────────────
-            _buildSummary(),
+            // ── Hunian yang Dipilih ──────────────
+            _buildHunianHeader(r),
             const SizedBox(height: 8),
 
-            // ── Form Detail ───────────────────
-            Container(
-              color: AppColors.white,
-              padding: const EdgeInsets.all(20),
+            // ── Detail Booking ───────────────────
+            _buildSection(
+              title: 'Detail Booking',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Detail Pemesanan',
-                      style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 16),
-
-                  // Info pemesan read-only
-                  _infoBox('Nama Pemesan', user?.name ?? '-',
-                      Icons.person_outline),
-                  const SizedBox(height: 10),
-                  _infoBox('Email', user?.email ?? '-', Icons.email_outlined),
-                  const SizedBox(height: 20),
-
-                  // Tanggal Masuk
-                  _fieldLabel('Tanggal Masuk'),
+                  // Tanggal masuk
+                  _fieldLabel('Tanggal Masuk *'),
                   const SizedBox(height: 8),
                   _datePicker(
-                    label: _checkInDate != null
-                        ? formatDate(_checkInDate)
+                    label: _startDate != null
+                        ? formatDate(_startDate)
                         : 'Pilih tanggal masuk',
-                    onTap: _pickCheckInDate,
-                    selected: _checkInDate != null,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Durasi Sewa
-                  _fieldLabel('Durasi Sewa'),
-                  const SizedBox(height: 8),
-                  _buildDurationSelector(),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // ── Upload Dokumen ────────────────
-            Container(
-              color: AppColors.white,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Dokumen Identitas',
-                              style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 2),
-                          Text('Wajib min. 1 dokumen (KTP/SIM/Surat)',
-                              style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 11,
-                                  color: AppColors.textHint)),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: _documents.isNotEmpty
-                              ? AppColors.residenceSurface
-                              : AppColors.errorLight,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${_documents.length} file',
-                          style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: _documents.isNotEmpty
-                                  ? AppColors.residence
-                                  : AppColors.error),
-                        ),
-                      ),
-                    ],
+                    onTap: _pickDate,
+                    selected: _startDate != null,
                   ),
                   const SizedBox(height: 14),
 
-                  // Daftar dokumen yang sudah di-upload
-                  if (_documents.isNotEmpty) ...[
-                    ..._documents.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final file = entry.value;
-                      final name = file.path.split('/').last;
-                      final isPdf = name.toLowerCase().endsWith('.pdf');
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: AppColors.residenceLight,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: AppColors.residence.withOpacity(0.2)),
+                  // Durasi sewa
+                  _fieldLabel('Durasi Sewa *'),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border:
+                          Border.all(color: AppColors.residence, width: 1.5),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _durationMonths,
+                        isExpanded: true,
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                            color: AppColors.textPrimary),
+                        items: _durations
+                            .map((d) => DropdownMenuItem(
+                                  value: d,
+                                  child: Text('$d Bulan'),
+                                ))
+                            .toList(),
+                        onChanged: (v) => setState(() => _durationMonths = v!),
+                      ),
+                    ),
+                  ),
+
+                  // Tanggal keluar (auto)
+                  if (_startDate != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.residenceLight,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.calendar_month_outlined,
+                            size: 16, color: AppColors.residence),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Tanggal Keluar: ${formatDate(_endDate)}',
+                          style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13,
+                              color: AppColors.residence,
+                              fontWeight: FontWeight.w500),
                         ),
-                        child: Row(children: [
-                          Icon(
-                            isPdf
-                                ? Icons.picture_as_pdf_outlined
-                                : Icons.image_outlined,
-                            color: AppColors.residence,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              name,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 12,
-                                  color: AppColors.textPrimary),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () =>
-                                setState(() => _documents.removeAt(i)),
-                            child: const Icon(Icons.close,
-                                color: AppColors.error, size: 18),
-                          ),
-                        ]),
-                      );
-                    }),
-                    const SizedBox(height: 8),
+                      ]),
+                    ),
                   ],
 
-                  // Tombol tambah dokumen
-                  OutlinedButton.icon(
-                    onPressed: _isPickingDoc ? null : _addDocument,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: Text(
-                      _documents.isEmpty
-                          ? 'Tambah Dokumen'
-                          : 'Tambah Dokumen Lagi',
-                      style: const TextStyle(fontFamily: 'Poppins'),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.residence,
-                      side: const BorderSide(color: AppColors.residence),
+                  const SizedBox(height: 14),
+                  _fieldLabel('Catatan (opsional)'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _notesCtrl,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Permintaan khusus, pertanyaan, dll...',
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: AppColors.border)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: AppColors.border)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: AppColors.residence)),
+                      contentPadding: const EdgeInsets.all(12),
                     ),
                   ),
                 ],
@@ -434,33 +337,104 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
             ),
             const SizedBox(height: 8),
 
-            // ── Ringkasan Harga ───────────────
-            _buildPriceSummary(),
-
-            // ── Error ─────────────────────────
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.errorLight,
-                    borderRadius: BorderRadius.circular(10),
+            // ── Upload Dokumen ───────────────────
+            _buildSection(
+              title: 'Upload Dokumen',
+              subtitle: 'Upload dokumen yang diperlukan untuk proses booking',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _docUpload(
+                    label: 'KTP *',
+                    fileName: _ktpFileName,
+                    onTap: () => _pickDocument(true),
+                    onRemove: () => setState(() {
+                      _ktpFile = null;
+                      _ktpFileName = null;
+                    }),
                   ),
-                  child: Row(children: [
-                    const Icon(Icons.error_outline,
-                        color: AppColors.error, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(_error!,
-                          style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12,
-                              color: AppColors.error)),
-                    ),
-                  ]),
-                ),
+                  const SizedBox(height: 12),
+                  _docUpload(
+                    label: 'Kartu Keluarga (opsional)',
+                    fileName: _kkFileName,
+                    onTap: () => _pickDocument(false),
+                    onRemove: () => setState(() {
+                      _kkFile = null;
+                      _kkFileName = null;
+                    }),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text('Format: JPG, PNG, PDF · Maks. 2MB',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 11,
+                          color: AppColors.textHint)),
+                ],
               ),
+            ),
+            const SizedBox(height: 8),
+
+            // ── Ringkasan Harga ──────────────────
+            _buildPriceSummary(r),
+            const SizedBox(height: 8),
+
+            // ── Info ─────────────────────────────
+            _buildInfoBox(),
+            const SizedBox(height: 8),
+
+            // ── S&K + Error ──────────────────────
+            Container(
+              color: AppColors.white,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: () =>
+                        setState(() => _termsAccepted = !_termsAccepted),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: _termsAccepted,
+                          onChanged: (v) => setState(() => _termsAccepted = v!),
+                          activeColor: AppColors.residence,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Saya menyetujui Syarat & Ketentuan dan Kebijakan Privasi EduLiving',
+                            style:
+                                TextStyle(fontFamily: 'Poppins', fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: AppColors.errorLight,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Row(children: [
+                        const Icon(Icons.error_outline,
+                            color: AppColors.error, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: Text(_error!,
+                                style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 12,
+                                    color: AppColors.error))),
+                      ]),
+                    ),
+                  ],
+                ],
+              ),
+            ),
 
             const SizedBox(height: 100),
           ],
@@ -470,148 +444,148 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
     );
   }
 
-  Widget _buildDurationSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.remove_circle_outline,
-                color: AppColors.residence),
-            onPressed: _durationMonths > 1
-                ? () => setState(() => _durationMonths--)
-                : null,
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                Text(
-                  '$_durationMonths Bulan',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.residence),
-                ),
-                Text(
-                  formatRupiah(_total),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 12,
-                      color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline,
-                color: AppColors.residence),
-            onPressed: _durationMonths < 24
-                ? () => setState(() => _durationMonths++)
-                : null,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummary() {
-    final r = widget.residence;
+  Widget _buildHunianHeader(ResidenceModel r) {
     return Container(
       color: AppColors.white,
       padding: const EdgeInsets.all(16),
-      child: Row(children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: EduImage(
-            path: r.mainImage,
-            width: 76,
-            height: 76,
-            placeholderColor: AppColors.residenceLight,
-            iconColor: AppColors.residence,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(r.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary)),
-              const SizedBox(height: 4),
-              Row(children: [
-                const Icon(Icons.location_on_outlined,
-                    size: 11, color: AppColors.textHint),
-                const SizedBox(width: 2),
-                Expanded(
-                  child: Text(r.address,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 11,
-                          color: AppColors.textSecondary)),
-                ),
-              ]),
-              const SizedBox(height: 4),
-              Text(
-                formatRupiah(r.discountedPrice,
-                    suffix: '/${r.rentalPeriodShort}'),
-                style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.residence),
-              ),
-            ],
-          ),
-        ),
-      ]),
-    );
-  }
-
-  Widget _buildPriceSummary() {
-    return Container(
-      color: AppColors.white,
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Ringkasan Harga',
+          const Text('Hunian yang Dipilih',
               style: TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 15,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
-          _priceRow(
-              'Harga sewa', formatRupiah(widget.residence.discountedPrice)),
-          _priceRow('Durasi', '$_durationMonths bulan'),
-          if (_checkInDate != null) ...[
-            _priceRow('Tanggal masuk', formatDate(_checkInDate)),
-            _priceRow(
-              'Estimasi selesai',
-              formatDate(DateTime(
-                _checkInDate!.year,
-                _checkInDate!.month + _durationMonths,
-                _checkInDate!.day,
-              )),
+          Row(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: EduImage(
+                path: r.mainImage,
+                width: 76,
+                height: 76,
+                placeholderColor: AppColors.residenceLight,
+                iconColor: AppColors.residence,
+              ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(r.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    const Icon(Icons.location_on_outlined,
+                        size: 11, color: AppColors.textHint),
+                    const SizedBox(width: 2),
+                    Expanded(
+                        child: Text(r.address,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 11,
+                                color: AppColors.textSecondary))),
+                  ]),
+                  const SizedBox(height: 4),
+                  if (r.hasDiscount)
+                    Text(formatRupiah(r.price),
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 11,
+                            color: AppColors.textHint,
+                            decoration: TextDecoration.lineThrough)),
+                  Text(
+                    formatRupiah(r.discountedPrice,
+                        suffix: '/${r.rentalPeriodShort}'),
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.residence),
+                  ),
+                ],
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceSummary(ResidenceModel r) {
+    return _buildSection(
+      title: 'Ringkasan',
+      child: Column(
+        children: [
+          _priceRow('Harga per Bulan', formatRupiah(r.price)),
+          if (r.hasDiscount) ...[
+            _priceRow(
+              'Diskon',
+              r.discountType == 'percentage'
+                  ? '-${r.discountValue?.toStringAsFixed(0)}%'
+                  : '-${formatRupiah(r.discountValue ?? 0)}',
+              color: AppColors.activity,
+            ),
+            _priceRow('Harga per Bulan (setelah diskon)',
+                formatRupiah(_pricePerMonth)),
           ],
-          const Divider(height: 20),
+          _priceRow('Durasi', '$_durationMonths Bulan'),
+          const Divider(height: 16),
           _priceRow('Total', formatRupiah(_total),
               bold: true, color: AppColors.residence),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoBox() {
+    return Container(
+      color: AppColors.white,
+      padding: const EdgeInsets.all(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.infoLight,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.info_outline, size: 16, color: AppColors.info),
+              const SizedBox(width: 6),
+              const Text('Informasi Penting',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.info)),
+            ]),
+            const SizedBox(height: 8),
+            ...[
+              '• Booking diproses dalam 1×24 jam',
+              '• Pembayaran dilakukan setelah booking disetujui',
+              '• Batalkan booking maks. 24 jam sebelum check-in',
+            ].map((s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(s,
+                      style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          color: AppColors.textSecondary)),
+                )),
+          ],
+        ),
       ),
     );
   }
@@ -627,79 +601,93 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Total Pembayaran',
-                      style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12,
-                          color: AppColors.textSecondary)),
-                  Text(formatRupiah(_total),
-                      style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.residence)),
-                ],
+            if (_startDate != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Total Pembayaran',
+                        style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 12,
+                            color: AppColors.textSecondary)),
+                    Text(formatRupiah(_total),
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.residence)),
+                  ],
+                ),
+              ),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.residence,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  disabledBackgroundColor:
+                      AppColors.residence.withValues(alpha: 0.5),
+                ),
+                onPressed: _isLoading ? null : _submit,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.send_outlined, size: 18),
+                label: Text(_isLoading ? 'Memproses...' : 'Buat Booking',
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700)),
               ),
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.residence),
-              onPressed: _isLoading ? null : _submit,
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                  : const Text('Kirim Pemesanan'),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _infoBox(String label, String value, IconData icon) {
+  // ── Helpers ────────────────────────────────────────────
+
+  Widget _buildSection(
+      {required String title, String? subtitle, required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(children: [
-        Icon(icon, size: 18, color: AppColors.textHint),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label,
+      color: AppColors.white,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700)),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(subtitle,
                 style: const TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 10,
-                    color: AppColors.textHint)),
-            Text(value,
-                style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary)),
+                    fontSize: 12,
+                    color: AppColors.textSecondary)),
           ],
-        ),
-      ]),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
     );
   }
 
-  Widget _datePicker({
-    required String label,
-    required VoidCallback? onTap,
-    bool selected = false,
-  }) {
+  Widget _datePicker(
+      {required String label,
+      required VoidCallback? onTap,
+      bool selected = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -708,9 +696,8 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? AppColors.residence : AppColors.border,
-            width: selected ? 1.8 : 1,
-          ),
+              color: selected ? AppColors.residence : AppColors.border,
+              width: selected ? 1.8 : 1),
         ),
         child: Row(children: [
           Icon(Icons.calendar_today_outlined,
@@ -722,10 +709,76 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
                   fontFamily: 'Poppins',
                   fontSize: 13,
                   color: selected ? AppColors.textPrimary : AppColors.textHint,
-                  fontWeight:
-                      selected ? FontWeight.w500 : FontWeight.w400)),
+                  fontWeight: selected ? FontWeight.w500 : FontWeight.w400)),
         ]),
       ),
+    );
+  }
+
+  Widget _docUpload({
+    required String label,
+    required String? fileName,
+    required VoidCallback onTap,
+    required VoidCallback onRemove,
+  }) {
+    final hasFile = fileName != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                fontWeight: FontWeight.w500)),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: hasFile ? null : onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: hasFile ? AppColors.residenceLight : Colors.grey[50],
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: hasFile ? AppColors.residence : AppColors.border,
+                  width: hasFile ? 1.5 : 1),
+            ),
+            child: Row(children: [
+              Icon(
+                  hasFile
+                      ? Icons.description_outlined
+                      : Icons.upload_file_outlined,
+                  size: 20,
+                  color: hasFile ? AppColors.residence : AppColors.textHint),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  hasFile ? fileName! : 'Pilih file...',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      color:
+                          hasFile ? AppColors.residence : AppColors.textHint),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (hasFile)
+                GestureDetector(
+                  onTap: onRemove,
+                  child:
+                      const Icon(Icons.close, size: 18, color: AppColors.error),
+                )
+              else
+                const Text('Browse',
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        color: AppColors.residence,
+                        fontWeight: FontWeight.w600)),
+            ]),
+          ),
+        ),
+      ],
     );
   }
 
@@ -748,7 +801,8 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
                   fontFamily: 'Poppins',
                   fontSize: bold ? 14 : 13,
                   fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
-                  color: bold ? AppColors.textPrimary : AppColors.textSecondary)),
+                  color:
+                      bold ? AppColors.textPrimary : AppColors.textSecondary)),
           Text(value,
               style: TextStyle(
                   fontFamily: 'Poppins',

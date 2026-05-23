@@ -31,38 +31,46 @@ class UserModel {
     }
 
     return UserModel(
-      id             : json['id'] ?? 0,
-      name           : json['name'] ?? '',
-      email          : json['email'] ?? '',
-      phone          : json['phone'],
-      address        : json['address'],
-      profilePicture : json['profile_picture'],
-      isActive       : json['is_active'] ?? true,
-      roles          : roleList,
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      phone: json['phone'],
+      address: json['address'],
+      profilePicture: json['profile_picture'],
+      isActive: json['is_active'] ?? true,
+      roles: roleList,
     );
   }
 
   // ── Cek Role ─────────────────────────────────────────
-  bool get isUser             => roles.contains('user');
-  bool get isProviderResidence=> roles.contains('provider_residence');
-  bool get isProviderEvent    => roles.contains('provider_event');
-  bool get isAdmin            => roles.contains('admin');
+  bool get isUser => roles.contains('user');
+  bool get isProviderResidence => roles.contains('provider_residence');
+  bool get isProviderEvent => roles.contains('provider_event');
+  bool get isProviderMarketplace => roles.contains('provider_marketplace');
+  bool get isAdmin => roles.contains('admin');
 
   // Role utama (untuk navigasi & badge)
   String get primaryRole {
-    if (isAdmin)             return 'admin';
+    if (isAdmin) return 'admin';
     if (isProviderResidence) return 'provider_residence';
-    if (isProviderEvent)     return 'provider_event';
+    if (isProviderEvent) return 'provider_event';
+    if (isProviderMarketplace) return 'provider_marketplace';
     return 'user';
   }
 
   // Label role dalam Bahasa Indonesia
   String get roleLabel {
     switch (primaryRole) {
-      case 'admin':              return 'Administrator';
-      case 'provider_residence': return 'Provider Hunian';
-      case 'provider_event':     return 'Provider Acara';
-      default:                   return 'Mahasiswa';
+      case 'admin':
+        return 'Administrator';
+      case 'provider_residence':
+        return 'Provider Hunian';
+      case 'provider_event':
+        return 'Provider Acara';
+      case 'provider_marketplace':
+        return 'Provider Marketplace';
+      default:
+        return 'Mahasiswa';
     }
   }
 
@@ -83,25 +91,25 @@ class UserModel {
     String? profilePicture,
   }) {
     return UserModel(
-      id             : id,
-      name           : name ?? this.name,
-      email          : email,
-      phone          : phone ?? this.phone,
-      address        : address ?? this.address,
-      profilePicture : profilePicture ?? this.profilePicture,
-      isActive       : isActive,
-      roles          : roles,
+      id: id,
+      name: name ?? this.name,
+      email: email,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      profilePicture: profilePicture ?? this.profilePicture,
+      isActive: isActive,
+      roles: roles,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'id'             : id,
-    'name'           : name,
-    'email'          : email,
-    'phone'          : phone,
-    'address'        : address,
-    'profile_picture': profilePicture,
-    'is_active'      : isActive,
-    'roles'          : roles,
-  };
+        'id': id,
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'address': address,
+        'profile_picture': profilePicture,
+        'is_active': isActive,
+        'roles': roles,
+      };
 }
