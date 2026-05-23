@@ -69,20 +69,29 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           leading: _backBtn(),
           actions: [
             if (isLoggedIn)
-              GestureDetector(
-                onTap: () => context
-                    .read<BookmarkProvider>()
-                    .toggle('Activity', widget.id),
-                child: Container(
-                  margin: const EdgeInsets.all(8),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.bookmark_border_rounded,
-                      size: 20, color: AppColors.activity),
-                ),
+              Consumer<BookmarkProvider>(
+                builder: (context, bookmarkProv, _) {
+                  final isBookmarked =
+                      bookmarkProv.isBookmarked('Activity', widget.id);
+                  return GestureDetector(
+                    onTap: () => bookmarkProv.toggle('Activity', widget.id),
+                    child: Container(
+                      margin: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        isBookmarked
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
+                        size: 20,
+                        color: AppColors.activity,
+                      ),
+                    ),
+                  );
+                },
               ),
           ],
           flexibleSpace: FlexibleSpaceBar(

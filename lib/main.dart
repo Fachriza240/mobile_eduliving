@@ -25,6 +25,7 @@ import 'features/bookmark/screens/bookmark_screen.dart';
 import 'features/marketplace/screens/marketplace_screen.dart';
 import 'features/marketplace/screens/transaction_list_screen.dart';
 import 'features/profile/screens/change_password_screen.dart';
+import 'features/notification/notification_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,6 +87,7 @@ class EduLivingApp extends StatelessWidget {
           '/marketplace':     (_) => const MarketplaceScreen(),
           '/transactions':    (_) => const TransactionListScreen(),
           '/change-password': (_) => const ChangePasswordScreen(),
+
         },
         onUnknownRoute: (_) => MaterialPageRoute(
           builder: (_) => const LoginScreen(),

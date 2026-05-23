@@ -475,25 +475,40 @@ class _FilterSheetState extends State<_FilterSheet> {
           const Text('Kondisi Barang',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _ConditionChip(
-                label: 'Semua',
-                selected: _condition == null,
-                onTap: () => setState(() => _condition = null),
-              ),
-              const SizedBox(width: 8),
+                  label: 'Semua',
+                  value: null,
+                  selected: _condition,
+                  onTap: (v) => setState(() => _condition = v)),
               _ConditionChip(
-                label: 'Baru',
-                selected: _condition == 'new',
-                onTap: () => setState(() => _condition = 'new'),
-              ),
-              const SizedBox(width: 8),
+                  label: 'Baru',
+                  value: 'new',
+                  selected: _condition,
+                  onTap: (v) => setState(() => _condition = v)),
               _ConditionChip(
-                label: 'Bekas',
-                selected: _condition == 'used',
-                onTap: () => setState(() => _condition = 'used'),
-              ),
+                  label: 'Seperti Baru',
+                  value: 'like_new',
+                  selected: _condition,
+                  onTap: (v) => setState(() => _condition = v)),
+              _ConditionChip(
+                  label: 'Baik',
+                  value: 'good',
+                  selected: _condition,
+                  onTap: (v) => setState(() => _condition = v)),
+              _ConditionChip(
+                  label: 'Cukup',
+                  value: 'fair',
+                  selected: _condition,
+                  onTap: (v) => setState(() => _condition = v)),
+              _ConditionChip(
+                  label: 'Perlu Perbaikan',
+                  value: 'needs_repair',
+                  selected: _condition,
+                  onTap: (v) => setState(() => _condition = v)),
             ],
           ),
           const SizedBox(height: 24),
@@ -525,28 +540,37 @@ class _FilterSheetState extends State<_FilterSheet> {
 
 class _ConditionChip extends StatelessWidget {
   final String label;
-  final bool selected;
-  final VoidCallback onTap;
+  final String? value;
+  final String? selected;
+  final Function(String?) onTap;
 
-  const _ConditionChip(
-      {required this.label, required this.selected, required this.onTap});
+  const _ConditionChip({
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isSelected = selected == value;
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => onTap(value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? AppColors.market : Colors.grey[100],
+          color: isSelected ? AppColors.market : Colors.grey[100],
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.market : Colors.grey.shade300,
+          ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : Colors.grey[600],
-            fontSize: 13,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+            color: isSelected ? Colors.white : Colors.grey[600],
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
       ),

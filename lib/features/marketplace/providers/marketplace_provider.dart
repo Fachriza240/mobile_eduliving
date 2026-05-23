@@ -72,9 +72,13 @@ class MarketplaceProvider extends ChangeNotifier {
           await _api.dio.get('/marketplace', queryParameters: params);
       final data = response.data;
       final List items = data['data'] ?? [];
-
-      _products.addAll(items.map((e) => MarketplaceProductModel.fromJson(e)));
-      _lastPage = data['last_page'] ?? 1;
+      _products.addAll(
+        items.map((e) => MarketplaceProductModel.fromJson(
+              Map<String, dynamic>.from(e as Map),
+            )),
+      );
+      // last_page ada di dalam 'meta' pada Laravel Resource collection
+      _lastPage = data['meta']?['last_page'] ?? data['last_page'] ?? 1;
       _currentPage++;
     } catch (e) {
       _error = 'Gagal memuat produk. Tarik untuk coba lagi.';
