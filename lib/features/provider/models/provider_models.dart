@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 // ============================================================
 // PROVIDER DASHBOARD MODEL
 // ============================================================
@@ -389,5 +391,188 @@ class CategoryModel {
       name : json['name'] ?? '',
       type : json['type'] ?? '',
     );
+  }
+}
+
+// ============================================================
+// PROVIDER MARKETPLACE PRODUCT MODEL
+// ============================================================
+class ProviderMarketplaceProductModel {
+  final int id;
+  final String name;
+  final String description;
+  final double price;
+  final int stockQuantity;
+  final String condition; // new | used
+  final String? conditionNotes;
+  final List<String> images;
+  final bool isAvailable;
+  final double averageRating;
+  final int ratingsCount;
+  final String? categoryName;
+  final int? categoryId;
+  final int ordersCount;
+  final DateTime createdAt;
+
+  ProviderMarketplaceProductModel({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.price,
+    required this.stockQuantity,
+    required this.condition,
+    this.conditionNotes,
+    required this.images,
+    required this.isAvailable,
+    required this.averageRating,
+    required this.ratingsCount,
+    this.categoryName,
+    this.categoryId,
+    required this.ordersCount,
+    required this.createdAt,
+  });
+
+  String get firstImage => images.isNotEmpty ? images.first : '';
+  String get conditionLabel => condition == 'new' ? 'Baru' : 'Bekas';
+
+  factory ProviderMarketplaceProductModel.fromJson(Map<String, dynamic> json) {
+    final cat = json['category'] as Map<String, dynamic>?;
+    return ProviderMarketplaceProductModel(
+      id             : json['id'] ?? 0,
+      name           : json['name'] ?? '',
+      description    : json['description'] ?? '',
+      price          : _toDouble(json['price']),
+      stockQuantity  : json['stock_quantity'] ?? 0,
+      condition      : json['condition'] ?? 'used',
+      conditionNotes : json['condition_notes'],
+      images         : _toList(json['images']),
+      isAvailable    : json['is_available'] == true,
+      averageRating  : _toDouble(json['average_rating']),
+      ratingsCount   : json['ratings_count'] ?? 0,
+      categoryName   : cat?['name'],
+      categoryId     : json['category_id'],
+      ordersCount    : json['orders_count'] ?? json['transactions_count'] ?? 0,
+      createdAt      : _parseDate(json['created_at']) ?? DateTime.now(),
+    );
+  }
+
+  static List<String> _toList(dynamic v) {
+    if (v == null) return [];
+    if (v is List) return v.map((e) => e.toString()).toList();
+    return [];
+  }
+
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0;
+    return double.tryParse(v.toString()) ?? 0;
+  }
+
+  static DateTime? _parseDate(dynamic v) {
+    if (v == null) return null;
+    try { return DateTime.parse(v.toString()); } catch (_) { return null; }
+  }
+}
+
+// ============================================================
+// PROVIDER MARKETPLACE ORDER MODEL
+// ============================================================
+class ProviderMarketplaceOrderModel {
+  final int id;
+  final String status;
+  final int quantity;
+  final double unitPrice;
+  final double totalAmount;
+  final String buyerName;
+  final String buyerPhone;
+  final String buyerAddress;
+  final String pickupMethod; // pickup | delivery | meetup
+  final String? pickupAddress;
+  final String? pickupNotes;
+  final String paymentMethod;
+  final String? paymentProofUrl;
+  final ProviderMarketplaceProductModel? product;
+  final DateTime createdAt;
+
+  ProviderMarketplaceOrderModel({
+    required this.id,
+    required this.status,
+    required this.quantity,
+    required this.unitPrice,
+    required this.totalAmount,
+    required this.buyerName,
+    required this.buyerPhone,
+    required this.buyerAddress,
+    required this.pickupMethod,
+    this.pickupAddress,
+    this.pickupNotes,
+    required this.paymentMethod,
+    this.paymentProofUrl,
+    this.product,
+    required this.createdAt,
+  });
+
+  String get statusLabel {
+    const labels = {
+      'pending'          : 'Menunggu',
+      'payment_uploaded' : 'Bukti Dikirim',
+      'confirmed'        : 'Dikonfirmasi',
+      'shipped'          : 'Dikirim',
+      'completed'        : 'Selesai',
+      'cancelled'        : 'Dibatalkan',
+    };
+    return labels[status] ?? status;
+  }
+
+  Color get statusColor {
+    switch (status) {
+      case 'pending':          return const Color(0xFFD97706);
+      case 'payment_uploaded': return const Color(0xFF2563EB);
+      case 'confirmed':        return const Color(0xFF16A34A);
+      case 'shipped':          return const Color(0xFF7C3AED);
+      case 'completed':        return const Color(0xFF16A34A);
+      case 'cancelled':        return const Color(0xFFDC2626);
+      default:                 return const Color(0xFF6B7280);
+    }
+  }
+
+  String get pickupMethodLabel {
+    const labels = {
+      'pickup'   : 'Ambil Sendiri',
+      'delivery' : 'Diantar',
+      'meetup'   : 'COD / Ketemu',
+    };
+    return labels[pickupMethod] ?? pickupMethod;
+  }
+
+  factory ProviderMarketplaceOrderModel.fromJson(Map<String, dynamic> json) {
+    return ProviderMarketplaceOrderModel(
+      id             : json['id'] ?? 0,
+      status         : json['status'] ?? 'pending',
+      quantity       : json['quantity'] ?? 1,
+      unitPrice      : _toDouble(json['unit_price']),
+      totalAmount    : _toDouble(json['total_amount']),
+      buyerName      : json['buyer_name'] ?? '',
+      buyerPhone     : json['buyer_phone'] ?? '',
+      buyerAddress   : json['buyer_address'] ?? '',
+      pickupMethod   : json['pickup_method'] ?? 'meetup',
+      pickupAddress  : json['pickup_address'],
+      pickupNotes    : json['pickup_notes'],
+      paymentMethod  : json['payment_method'] ?? '',
+      paymentProofUrl: json['payment_proof_url'],
+      product        : json['product'] != null
+          ? ProviderMarketplaceProductModel.fromJson(json['product'])
+          : null,
+      createdAt      : _parseDate(json['created_at']) ?? DateTime.now(),
+    );
+  }
+
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0;
+    return double.tryParse(v.toString()) ?? 0;
+  }
+
+  static DateTime? _parseDate(dynamic v) {
+    if (v == null) return null;
+    try { return DateTime.parse(v.toString()); } catch (_) { return null; }
   }
 }
