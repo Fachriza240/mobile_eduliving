@@ -112,14 +112,14 @@ class ApiService {
   }
 
   // ── PATCH ────────────────────────────────────────────
-  Future<Map<String, dynamic>> patch(String path, {Map<String, dynamic>? data}) async {
-    try {
-      final res = await _dio.patch(path, data: data);
-      return _handle(res);
-    } on DioException catch (e) {
-      throw _error(e);
-    }
-  }
+  // Future<Map<String, dynamic>> patch(String path, {Map<String, dynamic>? data}) async {
+  //   try {
+  //     final res = await _dio.patch(path, data: data);
+  //     return _handle(res);
+  //   } on DioException catch (e) {
+  //     throw _error(e);
+  //   }
+  // }
 
   // ── DELETE ───────────────────────────────────────────
   Future<Map<String, dynamic>> delete(String path, {Map<String, dynamic>? data}) async {

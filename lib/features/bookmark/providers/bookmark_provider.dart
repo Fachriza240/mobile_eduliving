@@ -42,7 +42,10 @@ class BookmarkProvider extends ChangeNotifier {
       // Backend return: { status, data: { bookmarks: [...], pagination: {...} } }
       final List items = response.data['data']['bookmarks'] ?? [];
 
-      _bookmarks = items.map((e) => BookmarkModel.fromJson(e)).toList();
+      _bookmarks = items
+          .map((e) =>
+              BookmarkModel.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
 
       _bookmarkedKeys.clear();
       for (final b in _bookmarks) {

@@ -4,7 +4,7 @@ class MarketplaceProductModel {
   final String description;
   final double price;
   final int stockQuantity;
-  final String condition;       // new | used
+  final String condition; // new | used
   final String? conditionNotes;
   final List<String> images;
   final bool isAvailable;
@@ -32,14 +32,29 @@ class MarketplaceProductModel {
   });
 
   String get firstImage => images.isNotEmpty ? images.first : '';
-  String get conditionLabel => condition == 'new' ? 'Baru' : 'Bekas';
+  String get conditionLabel {
+    switch (condition) {
+      case 'new':
+        return 'Baru';
+      case 'like_new':
+        return 'Seperti Baru';
+      case 'good':
+        return 'Baik';
+      case 'fair':
+        return 'Cukup';
+      case 'needs_repair':
+        return 'Perlu Perbaikan';
+      default:
+        return condition;
+    }
+  }
 
   factory MarketplaceProductModel.fromJson(Map<String, dynamic> json) {
     return MarketplaceProductModel(
       id: json['id'],
       name: json['name'] ?? '',
       description: json['description'] ?? '',
-      price: (json['price'] ?? 0).toDouble(),
+      price: double.tryParse(json['price'].toString()) ?? 0.0,
       stockQuantity: json['stock_quantity'] ?? 0,
       condition: json['condition'] ?? 'used',
       conditionNotes: json['condition_notes'],
@@ -51,8 +66,7 @@ class MarketplaceProductModel {
       category: json['category'] != null
           ? MarketplaceCategory.fromJson(json['category'])
           : null,
-      createdAt:
-          DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }
 }
@@ -100,7 +114,7 @@ class MarketplaceTransactionModel {
   final String buyerName;
   final String buyerPhone;
   final String buyerAddress;
-  final String pickupMethod;   // pickup | delivery | meetup
+  final String pickupMethod; // pickup | delivery | meetup
   final String? pickupAddress;
   final String? pickupNotes;
   final String paymentMethod;
@@ -154,8 +168,8 @@ class MarketplaceTransactionModel {
       id: json['id'],
       status: json['status'] ?? 'pending',
       quantity: json['quantity'] ?? 1,
-      unitPrice: (json['unit_price'] ?? 0).toDouble(),
-      totalAmount: (json['total_amount'] ?? 0).toDouble(),
+      unitPrice: double.tryParse(json['unit_price'].toString()) ?? 0.0,
+      totalAmount: double.tryParse(json['total_amount'].toString()) ?? 0.0,
       buyerName: json['buyer_name'] ?? '',
       buyerPhone: json['buyer_phone'] ?? '',
       buyerAddress: json['buyer_address'] ?? '',
@@ -170,8 +184,7 @@ class MarketplaceTransactionModel {
       seller: json['seller'] != null
           ? MarketplaceSeller.fromJson(json['seller'])
           : null,
-      createdAt:
-          DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }
 }
