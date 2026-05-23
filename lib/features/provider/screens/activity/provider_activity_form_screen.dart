@@ -156,8 +156,12 @@ class _ProviderActivityFormScreenState
       if (_categoryId != null) MapEntry('category_id', _categoryId.toString()),
       if (_eventDate != null)
         MapEntry('event_date', '${_eventDate!.year}-${_eventDate!.month.toString().padLeft(2,'0')}-${_eventDate!.day.toString().padLeft(2,'0')}'),
+      // registration_deadline wajib ada (backend required)
       if (_registrationDeadline != null)
-        MapEntry('registration_deadline', '${_registrationDeadline!.year}-${_registrationDeadline!.month.toString().padLeft(2,'0')}-${_registrationDeadline!.day.toString().padLeft(2,'0')}'),
+        MapEntry('registration_deadline', '${_registrationDeadline!.year}-${_registrationDeadline!.month.toString().padLeft(2,'0')}-${_registrationDeadline!.day.toString().padLeft(2,'0')}')
+      else if (_eventDate != null)
+        // fallback: 1 hari sebelum event_date jika belum dipilih
+        MapEntry('registration_deadline', '${_eventDate!.subtract(const Duration(days: 1)).toIso8601String().split('T').first}'),
       if (_latCtrl.text.isNotEmpty) MapEntry('latitude', _latCtrl.text.trim()),
       if (_lngCtrl.text.isNotEmpty) MapEntry('longitude', _lngCtrl.text.trim()),
       if (_discountType.isNotEmpty) MapEntry('discount_type', _discountType),
@@ -199,6 +203,18 @@ class _ProviderActivityFormScreenState
     }
     if (_eventDate == null) {
       _snack('Tanggal acara wajib dipilih.', isError: true);
+      return;
+    }
+    if (_registrationDeadline == null) {
+      _snack('Batas pendaftaran wajib dipilih.', isError: true);
+      return;
+    }
+    if (!_registrationDeadline!.isBefore(_eventDate!)) {
+      _snack('Batas pendaftaran harus sebelum tanggal acara.', isError: true);
+      return;
+    }
+    if (!_eventDate!.isAfter(DateTime.now())) {
+      _snack('Tanggal acara harus setelah hari ini.', isError: true);
       return;
     }
 

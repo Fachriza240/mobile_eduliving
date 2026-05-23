@@ -77,13 +77,17 @@ class EduLivingApp extends StatelessWidget {
           '/': (_) => const SplashScreen(),
           '/login': (_) => const LoginScreen(),
           '/register': (_) => const RegisterScreen(),
+
+          // FIX: Hanya satu route /home → RootScreen yang cek role otomatis
+          // RootScreen akan redirect ke ProviderHomeScreen atau HomeScreen
+          // sesuai role user yang sedang login
           '/home': (_) => const RootScreen(),
-          // '/home/user': (_) => const HomeScreen(),
-          '/bookmarks': (_) => const BookmarkScreen(),
-          '/marketplace': (_) => const MarketplaceScreen(),
-          '/transactions': (_) => const TransactionListScreen(),
+
+          '/bookmarks':       (_) => const BookmarkScreen(),
+          '/marketplace':     (_) => const MarketplaceScreen(),
+          '/transactions':    (_) => const TransactionListScreen(),
           '/change-password': (_) => const ChangePasswordScreen(),
-          '/notifications': (_) => const NotificationScreen(),
+
         },
         onUnknownRoute: (_) => MaterialPageRoute(
           builder: (_) => const LoginScreen(),

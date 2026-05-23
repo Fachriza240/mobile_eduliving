@@ -40,9 +40,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       backgroundColor: AppColors.background,
       body: Consumer<ActivityProvider>(
         builder: (_, prov, __) {
-          if (prov.isLoadingDetail) {
-            return _loadingState();
-          }
+          if (prov.isLoadingDetail) return _loadingState();
           if (prov.detailError != null) {
             return Scaffold(
               appBar: const EduAppBar(title: 'Detail Acara'),
@@ -52,9 +50,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               ),
             );
           }
-          if (prov.selectedActivity == null) {
-            return const SizedBox();
-          }
+          if (prov.selectedActivity == null) return const SizedBox();
           return _buildContent(prov.selectedActivity!);
         },
       ),
@@ -66,7 +62,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
     return CustomScrollView(
       slivers: [
-        // ── SliverAppBar hijau ─────────────
         SliverAppBar(
           expandedHeight: 280,
           pinned: true,
@@ -110,24 +105,16 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             children: [
               _buildMainInfo(a, isLoggedIn),
               const SizedBox(height: 8),
-
-              // Deskripsi
               _section('Deskripsi', _descText(a.description)),
               const SizedBox(height: 8),
-
-              // Pemateri (field speakers Serren)
               if (a.speakers.isNotEmpty) ...[
                 _section('Pemateri', _buildSpeakers(a.speakers)),
                 const SizedBox(height: 8),
               ],
-
-              // Benefit (field benefits Serren)
               if (a.benefits.isNotEmpty) ...[
                 _section('Yang Akan Kamu Dapat', _buildBenefits(a.benefits)),
                 const SizedBox(height: 8),
               ],
-
-              // Info Detail
               _section(
                 'Informasi Acara',
                 Column(children: [
@@ -182,10 +169,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Status badge
           _statusBadge(a),
           const SizedBox(height: 10),
-
           Text(a.name,
               style: const TextStyle(
                   fontFamily: 'Poppins',
@@ -193,8 +178,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary)),
           const SizedBox(height: 8),
-
-          // Penyelenggara
           Row(children: [
             const Icon(Icons.business_outlined,
                 size: 14, color: AppColors.textHint),
@@ -206,8 +189,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                     color: AppColors.textSecondary)),
           ]),
           const SizedBox(height: 4),
-
-          // Tanggal hijau
           Row(children: [
             const Icon(Icons.calendar_today_outlined,
                 size: 14, color: AppColors.activity),
@@ -220,15 +201,12 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                     color: AppColors.activity)),
           ]),
           const SizedBox(height: 14),
-
-          // Harga + slot
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Harga HIJAU
                   Text(
                     a.isFree ? 'Gratis' : formatRupiah(a.discountedPrice),
                     style: const TextStyle(
@@ -266,8 +244,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Tombol daftar hijau
           _registerButton(a, isLoggedIn),
         ],
       ),
@@ -275,9 +251,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   }
 
   Widget _registerButton(ActivityModel a, bool isLoggedIn) {
-    if (a.isEventPassed) {
-      return const SizedBox.shrink();
-    }
+    if (a.isEventPassed) return const SizedBox.shrink();
     if (a.isDeadlinePassed) {
       return SizedBox(
         width: double.infinity,
@@ -315,7 +289,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
 
-  // Pemateri — card hijau muda
   Widget _buildSpeakers(List<Map<String, dynamic>> speakers) {
     return Column(
       children: speakers.map((s) {
@@ -325,8 +298,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           decoration: BoxDecoration(
             color: AppColors.activityLight,
             borderRadius: BorderRadius.circular(12),
-            border:
-                Border.all(color: AppColors.activity.withValues(alpha: 0.15)),
+            border: Border.all(color: AppColors.activity.withValues(alpha: 0.15)),
           ),
           child: Row(children: [
             Container(
@@ -367,7 +339,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
 
-  // Benefit — centang hijau
   Widget _buildBenefits(List<String> benefits) {
     return Column(
       children: benefits.map((b) {
@@ -403,7 +374,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
 
-  // ── Form Pendaftaran BottomSheet ──────────────────
+  // ── Form Pendaftaran Event ─────────────────────────────
   void _showRegSheet(ActivityModel a) {
     final user = context.read<AuthProvider>().user;
     final nameCtrl = TextEditingController(text: user?.name ?? '');
@@ -436,7 +407,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Handle bar
                   Center(
                     child: Container(
                       width: 40,
@@ -449,7 +419,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Header
                   Row(children: [
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -530,13 +499,20 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                       hintText: 'Contoh: 08123456789',
                       prefixIcon: Icon(Icons.phone_outlined, size: 20),
                     ),
-                    validator: (v) => (v?.trim().isEmpty ?? true)
-                        ? 'Nomor telepon tidak boleh kosong'
-                        : null,
+                    validator: (v) {
+                      if (v?.trim().isEmpty ?? true) {
+                        return 'Nomor telepon tidak boleh kosong';
+                      }
+                      final digits = v!.trim().replaceAll(RegExp(r'\D'), '');
+                      if (digits.length < 8 || digits.length > 15) {
+                        return 'Nomor telepon 8–15 digit';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
 
-                  // Harga hijau
+                  // Harga
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -582,7 +558,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   ],
                   const SizedBox(height: 20),
 
-                  // Tombol submit hijau
+                  // Tombol daftar
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.activity),
@@ -595,15 +571,33 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                               err = null;
                             });
                             try {
+                              // FIX: kirim field yang benar sesuai backend
+                              // participant_name, participant_email, participant_phone
+                              // check_in_date = tanggal acara (harus sama dengan event_date)
+                              // bookable_type = 'activity' (bukan 'App\\Models\\Activity')
+                              final phoneDigits = phoneCtrl.text
+                                  .trim()
+                                  .replaceAll(RegExp(r'\D'), '');
                               await ApiService().post(
                                 ApiConstants.userBookings,
                                 data: {
                                   'bookable_id': a.id,
-                                  'bookable_type': 'App\\Models\\Activity',
-                                  'full_name': nameCtrl.text.trim(),
-                                  'email': emailCtrl.text.trim(),
-                                  'phone': phoneCtrl.text.trim(),
-                                  'total_price': a.discountedPrice,
+                                  'bookable_type': 'activity',
+                                  'participant_name': nameCtrl.text.trim(),
+                                  'participant_email': emailCtrl.text.trim(),
+                                  'participant_phone': phoneDigits,
+                                  // check_in_date harus sama dengan tanggal event
+                                  'check_in_date': a.eventDate != null
+                                      ? (a.eventDate is DateTime
+                                          ? (a.eventDate as DateTime)
+                                              .toIso8601String()
+                                              .split('T')
+                                              .first
+                                          : a.eventDate.toString().split(' ').first)
+                                      : DateTime.now()
+                                          .toIso8601String()
+                                          .split('T')
+                                          .first,
                                 },
                               );
                               if (ctx.mounted) {
@@ -681,8 +675,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
         ),
         actions: [
           ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(backgroundColor: AppColors.activity),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.activity),
             onPressed: () => Navigator.pop(context),
             child: const Text('Oke, Terima Kasih!'),
           ),
@@ -715,8 +709,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       return Container(
         color: AppColors.activityLight,
         child: const Center(
-          child:
-              Icon(Icons.event_outlined, size: 64, color: AppColors.activity),
+          child: Icon(Icons.event_outlined, size: 64, color: AppColors.activity),
         ),
       );
     }
