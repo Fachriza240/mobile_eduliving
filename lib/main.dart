@@ -66,7 +66,6 @@ class EduLivingApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => BookmarkProvider()),
         ChangeNotifierProvider(create: (_) => MarketplaceProvider()),
         ChangeNotifierProvider(create: (_) => MarketplaceTransactionProvider()),
-
       ],
       child: MaterialApp(
         title: 'EduLiving',
@@ -78,14 +77,15 @@ class EduLivingApp extends StatelessWidget {
           '/login': (_) => const LoginScreen(),
           '/register': (_) => const RegisterScreen(),
 
+          // FIX: Hanya satu route /home → RootScreen yang cek role otomatis
+          // RootScreen akan redirect ke ProviderHomeScreen atau HomeScreen
+          // sesuai role user yang sedang login
           '/home': (_) => const RootScreen(),
 
-          '/home': (_) => const HomeScreen(),
-          '/bookmarks':        (_) => const BookmarkScreen(),
-          '/marketplace':      (_) => const MarketplaceScreen(),
-          '/transactions':     (_) => const TransactionListScreen(),
-          '/change-password':  (_) => const ChangePasswordScreen(),
-
+          '/bookmarks':       (_) => const BookmarkScreen(),
+          '/marketplace':     (_) => const MarketplaceScreen(),
+          '/transactions':    (_) => const TransactionListScreen(),
+          '/change-password': (_) => const ChangePasswordScreen(),
         },
         onUnknownRoute: (_) => MaterialPageRoute(
           builder: (_) => const LoginScreen(),

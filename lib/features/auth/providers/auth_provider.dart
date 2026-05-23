@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/api_service.dart';
@@ -35,7 +38,6 @@ class AuthProvider extends ChangeNotifier {
       }
 
       final res = await _api.get(ApiConstants.me);
-      // Response: { "status": "success", "data": { "user": {...} } }
       final data = res['data'] as Map<String, dynamic>?;
       final userData = data?['user'] as Map<String, dynamic>?;
       if (userData != null) {
@@ -69,7 +71,6 @@ class AuthProvider extends ChangeNotifier {
         },
       );
 
-      // Response: { "status":"success", "data": { "user":{...}, "token":"..." } }
       final data = res['data'] as Map<String, dynamic>?;
       final token = data?['token'] as String?;
       final userData = data?['user'] as Map<String, dynamic>?;
@@ -105,7 +106,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ── Register ──────────────────────────────────────────
+  // ── Register Mahasiswa (user biasa) ───────────────────
   Future<bool> register({
     required String name,
     required String email,
@@ -121,12 +122,6 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Map role ke format yang diterima backend
-      String backendRole = role;
-      if (role == 'provider_residence' || role == 'provider_event') {
-        backendRole = role; // kirim apa adanya, backend akan handle
-      }
-
       final res = await _api.post(
         ApiConstants.register,
         data: {
@@ -136,11 +131,10 @@ class AuthProvider extends ChangeNotifier {
           'password_confirmation': passwordConfirmation,
           'phone': phone.trim(),
           'address': address.trim(),
-          'role': backendRole,
+          'role': role,
         },
       );
 
-      // Response: { "status":"success", "data": { "user":{...}, "token":"..." } }
       final data = res['data'] as Map<String, dynamic>?;
       final token = data?['token'] as String?;
       final userData = data?['user'] as Map<String, dynamic>?;
@@ -174,6 +168,89 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  // ── Register Provider (provider_residence / provider_event) ──
+  // Wajib kirim: NIK (16 digit), foto KTP (File), selfie (base64 String)
+  // Dikirim sebagai multipart/form-data karena ada file upload
+  Future<bool> registerProvider({
+    required String name,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+    required String role, // 'provider_residence' atau 'provider_event'
+    required String providerNik, // 16 digit
+    required File providerKtp, // file foto KTP dari galeri
+    required String providerSelfieBase64, // base64 string hasil kamera
+  }) async {
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+    _fieldErrors = null;
+    notifyListeners();
+
+    try {
+      // Kirim sebagai multipart/form-data (karena ada file KTP)
+      final formData = FormData.fromMap({
+        'name': name.trim(),
+        'email': email.trim(),
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+        'role': role,
+        'provider_nik': providerNik.trim(),
+        // File KTP — upload langsung sebagai file
+        'provider_ktp': await MultipartFile.fromFile(
+          providerKtp.path,
+          filename: 'ktp_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ),
+        // Selfie dikirim sebagai string base64
+        'provider_selfie': providerSelfieBase64,
+      });
+
+      final res = await _api.post(
+        ApiConstants.register,
+        formData: formData,
+      );
+
+      final data = res['data'] as Map<String, dynamic>?;
+      final token = data?['token'] as String?;
+      final userData = data?['user'] as Map<String, dynamic>?;
+
+      if (token == null || userData == null) {
+        throw ApiException(message: 'Respons registrasi tidak valid.');
+      }
+
+      _user = UserModel.fromJson(userData);
+
+      await StorageHelper.saveToken(token);
+      await StorageHelper.saveUserInfo(
+        id: _user!.id,
+        name: _user!.name,
+        email: _user!.email,
+        role: _user!.primaryRole,
+      );
+
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      _fieldErrors = e.errors;
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = 'Terjadi kesalahan. Coba lagi.';
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── Set Authenticated (untuk keperluan internal) ───────
+  void setAuthenticated(UserModel user) {
+    _user = user;
+    _status = AuthStatus.authenticated;
+    notifyListeners();
   }
 
   // ── Logout ────────────────────────────────────────────
