@@ -57,7 +57,7 @@ class ResidenceProvider extends ChangeNotifier {
         params['search'] = _searchQuery;
       }
       if (_selectedCategory.isNotEmpty) {
-        params['category'] = _selectedCategory;
+        params['residence_type'] = _selectedCategory;
       }
 
       final res = await _api.get(

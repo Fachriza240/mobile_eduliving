@@ -18,10 +18,10 @@ class _HunianTabState extends State<HunianTab> {
 
   final _categories = const [
     {'id': '', 'label': 'Semua'},
-    {'id': 'kost', 'label': 'Kost'},
+    {'id': 'kos', 'label': 'Kos'},
     {'id': 'kontrakan', 'label': 'Kontrakan'},
     {'id': 'apartemen', 'label': 'Apartemen'},
-    {'id': 'rumah', 'label': 'Rumah'},
+    {'id': 'rumah_sewa', 'label': 'Rumah Sewa'},
   ];
 
   @override
@@ -242,13 +242,19 @@ class _ResidenceCard extends StatelessWidget {
           children: [
             // ── Gambar ────────────────────────
             Stack(children: [
-              EduImage(
-                path: image,
-                height: 175,
-                borderRadius: 14,
-                placeholderIcon: Icons.home_work_outlined,
-                placeholderColor: AppColors.residenceLight,
-                iconColor: AppColors.residence,
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(14),
+                  topRight: Radius.circular(14),
+                ),
+                child: EduImage(
+                  path: image,
+                  height: 175,
+                  borderRadius: 0,
+                  placeholderIcon: Icons.home_work_outlined,
+                  placeholderColor: AppColors.residenceLight,
+                  iconColor: AppColors.residence,
+                ),
               ),
               if (category != '-')
                 Positioned(
