@@ -36,9 +36,25 @@ class _BerandaTabState extends State<BerandaTab> {
       _error = null;
     });
     try {
-      final res = await _api.get(ApiConstants.home);
+      // Fetch home data dan marketplace secara paralel
+      final results = await Future.wait([
+        _api.get(ApiConstants.home),
+        _api.get(ApiConstants.marketplace,
+            queryParameters: {'per_page': '6', 'page': '1'}),
+      ]);
+
+      final homeRes = results[0];
+      final marketRes = results[1];
+
       setState(() {
-        _homeData = res;
+        _homeData = {
+          // API return { status, data: { featured_residences, featured_activities, categories } }
+          'residences': homeRes['data']?['featured_residences'] ?? [],
+          'activities': homeRes['data']?['featured_activities'] ?? [],
+          'categories': homeRes['data']?['categories'] ?? [],
+          // Produk dari marketplace endpoint
+          'products': (marketRes['data'] as List?) ?? [],
+        };
         _isLoading = false;
       });
     } catch (e) {
@@ -203,6 +219,7 @@ class _BerandaTabState extends State<BerandaTab> {
     final residences = (_homeData?['residences'] as List?) ?? [];
     final activities = (_homeData?['activities'] as List?) ?? [];
     final products = (_homeData?['products'] as List?) ?? [];
+    final categories = (_homeData?['categories'] as List?) ?? [];
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -247,7 +264,7 @@ class _BerandaTabState extends State<BerandaTab> {
 
           // ── Produk Marketplace ───────────────
           SectionHeader(
-            title: 'Produk Terbaru',
+            title: 'Barang Terbaru',
             seeAllColor: AppColors.market,
             onSeeAll: () => Navigator.push(
               context,
@@ -302,6 +319,68 @@ class _BerandaTabState extends State<BerandaTab> {
           onTap: () => Navigator.pushNamed(context, '/bookmarks'),
         ),
       ],
+    );
+  }
+
+  Widget _buildCategories(List categories) {
+    return SizedBox(
+      height: 36,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        itemBuilder: (_, i) {
+          final cat = categories[i] as Map<String, dynamic>;
+          final type = cat['type']?.toString() ?? '';
+          final color = type == 'residence'
+              ? AppColors.residence
+              : type == 'activity'
+                  ? AppColors.activity
+                  : AppColors.market;
+          final bgColor = type == 'residence'
+              ? AppColors.residenceLight
+              : type == 'activity'
+                  ? AppColors.activityLight
+                  : AppColors.marketLight;
+
+          return GestureDetector(
+            onTap: () {
+              if (type == 'residence') {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ResidenceListScreen(),
+                    ));
+              } else if (type == 'activity') {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ActivityListScreen(),
+                    ));
+              } else {
+                Navigator.pushNamed(context, '/marketplace');
+              }
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: color.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                cat['name']?.toString() ?? '',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

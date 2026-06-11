@@ -25,7 +25,6 @@ class _AcaraTabState extends State<AcaraTab>
     {'id': 'kompetisi', 'label': 'Kompetisi'},
     {'id': 'webinar', 'label': 'Webinar'},
     {'id': 'pelatihan', 'label': 'Pelatihan'},
-    {'id': 'sosial', 'label': 'Sosial'},
   ];
 
   @override
@@ -281,13 +280,19 @@ class _AcaraCard extends StatelessWidget {
           children: [
             // ── Gambar ────────────────────────
             Stack(children: [
-              EduImage(
-                path: image,
-                height: 160,
-                borderRadius: 14,
-                placeholderIcon: Icons.event_outlined,
-                placeholderColor: AppColors.activityLight,
-                iconColor: AppColors.activity,
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(14),
+                  topRight: Radius.circular(14),
+                ),
+                child: EduImage(
+                  path: image,
+                  height: 160,
+                  borderRadius: 0,
+                  placeholderIcon: Icons.event_outlined,
+                  placeholderColor: AppColors.activityLight,
+                  iconColor: AppColors.activity,
+                ),
               ),
               Positioned(
                 top: 12,

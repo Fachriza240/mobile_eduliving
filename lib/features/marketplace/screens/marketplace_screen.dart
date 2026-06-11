@@ -60,7 +60,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(
-          'Marketplace',
+          'Barang',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         backgroundColor: Colors.white,

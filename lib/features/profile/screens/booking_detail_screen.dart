@@ -1,3 +1,8 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../core/constants/api_constants.dart';
+import '../../../core/services/api_service.dart';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/booking_model.dart';
@@ -14,6 +19,12 @@ class BookingDetailScreen extends StatefulWidget {
 
 class _BookingDetailScreenState extends State<BookingDetailScreen> {
   BookingModel get booking => widget.booking;
+  final _api = ApiService();
+  final _picker = ImagePicker();
+  String? _selectedPaymentMethod;
+  File? _paymentProofFile;
+  String? _paymentProofName;
+  bool _isPaymentLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -38,11 +49,262 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               const SizedBox(height: 8),
               _buildRatingButton(context),
             ],
+            if (booking.status == 'approved') ...[
+              const SizedBox(height: 8),
+              _buildPaymentSection(),
+            ],
             const SizedBox(height: 32),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildPaymentSection() {
+    return StatefulBuilder(
+      builder: (context, setS) => Container(
+        color: Colors.white,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.payment_outlined,
+                  color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              const Text('Proses Pembayaran',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700)),
+            ]),
+            const SizedBox(height: 6),
+            const Text(
+              'Booking disetujui. Pilih metode pembayaran dan upload bukti bayar.',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 14),
+
+            // Pilih metode pembayaran
+            const Text('Metode Pembayaran *',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
+            ...[
+              {
+                'value': 'bank_transfer',
+                'label': 'Transfer Bank',
+                'icon': Icons.account_balance_outlined
+              },
+              {
+                'value': 'e_wallet',
+                'label': 'E-Wallet',
+                'icon': Icons.account_balance_wallet_outlined
+              },
+              {'value': 'cash', 'label': 'Tunai', 'icon': Icons.money_outlined},
+            ].map((m) => GestureDetector(
+                  onTap: () => setState(
+                      () => _selectedPaymentMethod = m['value'] as String),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _selectedPaymentMethod == m['value']
+                          ? AppColors.primaryLight
+                          : Colors.grey[50],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _selectedPaymentMethod == m['value']
+                            ? AppColors.primary
+                            : AppColors.border,
+                        width: _selectedPaymentMethod == m['value'] ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(children: [
+                      Icon(m['icon'] as IconData,
+                          size: 20,
+                          color: _selectedPaymentMethod == m['value']
+                              ? AppColors.primary
+                              : AppColors.textSecondary),
+                      const SizedBox(width: 10),
+                      Text(m['label'] as String,
+                          style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13,
+                              fontWeight: _selectedPaymentMethod == m['value']
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: _selectedPaymentMethod == m['value']
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary)),
+                      const Spacer(),
+                      if (_selectedPaymentMethod == m['value'])
+                        const Icon(Icons.check_circle,
+                            color: AppColors.primary, size: 18),
+                    ]),
+                  ),
+                )),
+
+            const SizedBox(height: 12),
+
+            // Upload bukti bayar (opsional)
+            const Text('Bukti Pembayaran (opsional)',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _paymentProofFile != null
+                  ? null
+                  : () async {
+                      final picked = await _picker.pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 80,
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _paymentProofFile = File(picked.path);
+                          _paymentProofName = picked.name;
+                        });
+                      }
+                    },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _paymentProofFile != null
+                      ? AppColors.primaryLight
+                      : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _paymentProofFile != null
+                        ? AppColors.primary
+                        : AppColors.border,
+                  ),
+                ),
+                child: Row(children: [
+                  Icon(
+                    _paymentProofFile != null
+                        ? Icons.image_outlined
+                        : Icons.upload_file_outlined,
+                    size: 20,
+                    color: _paymentProofFile != null
+                        ? AppColors.primary
+                        : AppColors.textHint,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _paymentProofFile != null
+                          ? _paymentProofName!
+                          : 'Upload bukti bayar (JPG/PNG)',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 13,
+                          color: _paymentProofFile != null
+                              ? AppColors.primary
+                              : AppColors.textHint),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (_paymentProofFile != null)
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        _paymentProofFile = null;
+                        _paymentProofName = null;
+                      }),
+                      child: const Icon(Icons.close,
+                          size: 18, color: AppColors.error),
+                    ),
+                ]),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Tombol bayar
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  disabledBackgroundColor:
+                      AppColors.primary.withValues(alpha: 0.5),
+                ),
+                onPressed: _isPaymentLoading || _selectedPaymentMethod == null
+                    ? null
+                    : () => _submitPayment(),
+                icon: _isPaymentLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.send_outlined, size: 18),
+                label: Text(
+                  _isPaymentLoading ? 'Memproses...' : 'Konfirmasi Pembayaran',
+                  style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitPayment() async {
+    setState(() => _isPaymentLoading = true);
+
+    try {
+      final formData = FormData.fromMap({
+        'payment_method': _selectedPaymentMethod!,
+        if (_paymentProofFile != null)
+          'payment_proof': await MultipartFile.fromFile(
+            _paymentProofFile!.path,
+            filename: 'proof_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          ),
+      });
+
+      await _api.post(
+        ApiConstants.userBookingPayment(booking.id),
+        formData: formData,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pembayaran berhasil dikonfirmasi!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context, true); // true = perlu refresh list
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('ApiException: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isPaymentLoading = false);
+    }
   }
 
   Widget _buildRatingButton(BuildContext context) {

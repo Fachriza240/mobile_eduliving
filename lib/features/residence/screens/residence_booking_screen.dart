@@ -2,13 +2,11 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/residence_model.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/widgets/common_widgets.dart';
-import '../../auth/providers/auth_provider.dart';
 
 class ResidenceBookingScreen extends StatefulWidget {
   final ResidenceModel residence;
