@@ -73,9 +73,9 @@ class _ProviderResidenceFormScreenState
   ];
 
   final _furnishOptions = const [
-    {'value': 'unfurnished',   'label': 'Unfurnished'},
-    {'value': 'semifurnished', 'label': 'Semi Furnished'},
-    {'value': 'furnished',     'label': 'Furnished'},
+    {'value': 'unfurnished',    'label': 'Unfurnished'},
+    {'value': 'semi_furnished', 'label': 'Semi Furnished'},
+    {'value': 'full_furnished', 'label': 'Full Furnished'},
   ];
 
   final _rentalOptions = const [

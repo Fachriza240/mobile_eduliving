@@ -6,6 +6,7 @@ import '../models/marketplace_model.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/app_helpers.dart';
 import 'product_detail_screen.dart';
+import '../../../features/auth/providers/auth_provider.dart'; 
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -294,6 +295,43 @@ class _ProductCard extends StatelessWidget {
                           fontWeight: FontWeight.bold),
                     ),
                   ),
+                ),
+              Builder(
+                  builder: (ctx) {
+                    final userId =
+                        ctx.read<AuthProvider>().user?.id;
+                    if (userId == null ||
+                        product.seller.id != userId) {
+                      return const SizedBox.shrink();
+                    }
+                    return Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.market,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.storefront_rounded,
+                                size: 10, color: Colors.white),
+                            SizedBox(width: 3),
+                            Text(
+                              'Produk Anda',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

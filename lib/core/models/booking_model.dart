@@ -3,6 +3,7 @@ class BookingModel {
   final int userId;
   final int bookableId;
   final String bookableType;
+  final String bookingCode;
   final String status;
   final DateTime? startDate;
   final DateTime? endDate;
@@ -20,6 +21,7 @@ class BookingModel {
     required this.bookableId,
     required this.bookableType,
     required this.status,
+    this.bookingCode,
     this.startDate,
     this.endDate,
     this.totalPrice,
@@ -34,6 +36,7 @@ class BookingModel {
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     return BookingModel(
       id: json['id'] ?? 0,
+      bookingCode: json['booking_code'] ?? '',
       userId: json['user_id'] ?? 0,
       bookableId: json['bookable_id'] ?? 0,
       bookableType: json['bookable_type'] ?? '',

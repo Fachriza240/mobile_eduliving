@@ -92,7 +92,7 @@ class _ProviderMarketplaceFormScreenState
       if (_conditionNotesCtrl.text.trim().isNotEmpty)
         MapEntry('condition_notes', _conditionNotesCtrl.text.trim()),
       if (_categoryId != null)
-        MapEntry('category_id', _categoryId.toString()),
+        MapEntry('category_id', _categoryId),
     ];
 
     // Existing images yang masih dipertahankan
