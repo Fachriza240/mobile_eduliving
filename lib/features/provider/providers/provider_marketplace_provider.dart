@@ -49,6 +49,9 @@ class ProviderMarketplaceProvider extends ChangeNotifier {
         ApiConstants.providerMarketplaceProducts,
         queryParameters: {'page': _currentPage},
       );
+
+      // Backend mengembalikan Laravel paginate collection
+      // Format: { data: [...], meta: { last_page: N, ... } }
       final data = res['data'] as List? ?? [];
       final meta = res['meta'] as Map<String, dynamic>?;
 
@@ -75,23 +78,22 @@ class ProviderMarketplaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Kategori hardcode sesuai ProductCategorySeeder — id match urutan insert di DB
   Future<void> loadCategories() async {
     if (_categories.isNotEmpty) return;
-    try {
-      final res = await _api.get(
-        ApiConstants.categories,
-        queryParameters: {'type': 'marketplace'},
-      );
-      final dataMap = res['data'] as Map<String, dynamic>?;
-      final list = dataMap?['categories'] as List? ?? [];
-      _categories = list
-          .whereType<Map<String, dynamic>>()
-          .map((e) => CategoryModel.fromJson(e))
-          .toList();
-      notifyListeners();
-    } catch (e) {
-      debugPrint('[ProviderMarketplace] loadCategories error: $e');
-    }
+    _categories = [
+      CategoryModel(id: 1,  name: 'Elektronik',            type: 'marketplace'),
+      CategoryModel(id: 2,  name: 'Fashion',                type: 'marketplace'),
+      CategoryModel(id: 3,  name: 'Rumah Tangga',           type: 'marketplace'),
+      CategoryModel(id: 4,  name: 'Olahraga',               type: 'marketplace'),
+      CategoryModel(id: 5,  name: 'Buku & Media',          type: 'marketplace'),
+      CategoryModel(id: 6,  name: 'Kesehatan & Kecantikan',type: 'marketplace'),
+      CategoryModel(id: 7,  name: 'Otomotif',               type: 'marketplace'),
+      CategoryModel(id: 8,  name: 'Hobi & Koleksi',        type: 'marketplace'),
+      CategoryModel(id: 9,  name: 'Makanan & Minuman',     type: 'marketplace'),
+      CategoryModel(id: 10, name: 'Lainnya',                type: 'marketplace'),
+    ];
+    notifyListeners();
   }
 
   // ── CREATE ────────────────────────────────────────────
@@ -160,31 +162,39 @@ class ProviderMarketplaceProvider extends ChangeNotifier {
   }
 
   // ── TOGGLE AVAILABILITY ───────────────────────────────
+  // Backend tidak punya endpoint toggle terpisah.
+  // Pakai PUT /user/seller/products/{id} dengan field status.
   Future<bool> toggleAvailability(int id) async {
+    final idx = _products.indexWhere((p) => p.id == id);
+    if (idx == -1) return false;
+
+    final old = _products[idx];
+    final newStatus = old.isAvailable ? 'inactive' : 'active';
+
     try {
-      await _api.patch(ApiConstants.providerMarketplaceProductToggle(id));
-      final idx = _products.indexWhere((p) => p.id == id);
-      if (idx != -1) {
-        final old = _products[idx];
-        _products[idx] = ProviderMarketplaceProductModel(
-          id            : old.id,
-          name          : old.name,
-          description   : old.description,
-          price         : old.price,
-          stockQuantity : old.stockQuantity,
-          condition     : old.condition,
-          conditionNotes: old.conditionNotes,
-          images        : old.images,
-          isAvailable   : !old.isAvailable,
-          averageRating : old.averageRating,
-          ratingsCount  : old.ratingsCount,
-          categoryName  : old.categoryName,
-          categoryId    : old.categoryId,
-          ordersCount   : old.ordersCount,
-          createdAt     : old.createdAt,
-        );
-        notifyListeners();
-      }
+      await _api.put(
+        ApiConstants.providerMarketplaceProductToggle(id),
+        data: {'status': newStatus},
+      );
+
+      _products[idx] = ProviderMarketplaceProductModel(
+        id            : old.id,
+        name          : old.name,
+        description   : old.description,
+        price         : old.price,
+        stockQuantity : old.stockQuantity,
+        condition     : old.condition,
+        conditionNotes: old.conditionNotes,
+        images        : old.images,
+        isAvailable   : !old.isAvailable,
+        averageRating : old.averageRating,
+        ratingsCount  : old.ratingsCount,
+        categoryName  : old.categoryName,
+        categoryId    : old.categoryId,
+        ordersCount   : old.ordersCount,
+        createdAt     : old.createdAt,
+      );
+      notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
@@ -289,56 +299,40 @@ class ProviderMarketplaceOrderProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> confirmOrder(int id) => _updateOrderStatus(
-    id,
-    ApiConstants.providerMarketplaceOrderConfirm(id),
-    'Pesanan dikonfirmasi.',
-  );
+  // Backend hanya punya PATCH /user/seller/orders/{id}/status
+  // dengan body { status: 'confirmed'|'in_progress'|'completed'|'cancelled' }
+  Future<bool> confirmOrder(int id) =>
+      _updateStatus(id, 'confirmed', 'Pesanan dikonfirmasi.');
 
-  Future<bool> shipOrder(int id) => _updateOrderStatus(
-    id,
-    ApiConstants.providerMarketplaceOrderShip(id),
-    'Pesanan ditandai dikirim.',
-  );
+  Future<bool> shipOrder(int id) =>
+      _updateStatus(id, 'in_progress', 'Pesanan ditandai dikirim.');
 
-  Future<bool> completeOrder(int id) => _updateOrderStatus(
-    id,
-    ApiConstants.providerMarketplaceOrderComplete(id),
-    'Pesanan selesai.',
-  );
+  Future<bool> completeOrder(int id) =>
+      _updateStatus(id, 'completed', 'Pesanan selesai.');
 
-  Future<bool> rejectOrder(int id, {String? reason}) async {
+  Future<bool> rejectOrder(int id, {String? reason}) =>
+      _updateStatus(id, 'cancelled', 'Pesanan ditolak.',
+          extra: reason != null ? {'cancellation_reason': reason} : null);
+
+  Future<bool> _updateStatus(
+    int id,
+    String status,
+    String successMsg, {
+    Map<String, dynamic>? extra,
+  }) async {
     _isActing = true;
     _error = null;
     _successMessage = null;
     notifyListeners();
 
     try {
+      final body = <String, dynamic>{'status': status};
+      if (extra != null) body.addAll(extra);
+
       await _api.patch(
-        ApiConstants.providerMarketplaceOrderReject(id),
-        data: reason != null ? {'reason': reason} : null,
+        ApiConstants.providerMarketplaceOrderUpdateStatus(id),
+        data: body,
       );
-      _successMessage = 'Pesanan ditolak.';
-      await loadOrders(refresh: true);
-      _isActing = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      _isActing = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> _updateOrderStatus(int id, String endpoint, String successMsg) async {
-    _isActing = true;
-    _error = null;
-    _successMessage = null;
-    notifyListeners();
-
-    try {
-      await _api.patch(endpoint);
       _successMessage = successMsg;
       await loadOrders(refresh: true);
       _isActing = false;

@@ -8,6 +8,7 @@ import 'screens/residence/provider_residence_list_screen.dart';
 import 'screens/activity/provider_activity_list_screen.dart';
 import 'screens/booking_mgmt/provider_booking_list_screen.dart';
 import 'package:eduliving_mobile/features/provider/provider_profile_tab.dart';
+import 'provider_marketplace_home_screen.dart';
 
 /// Root screen yang memilih antara user HomeScreen dan provider HomeScreen
 /// berdasarkan role dari AuthProvider.
@@ -25,6 +26,9 @@ class RootScreen extends StatelessWidget {
     }
     if (user.isProviderEvent) {
       return const ProviderHomeScreen(isResidence: false);
+    }
+    if (user.isProviderMarketplace) {
+      return const ProviderMarketplaceHomeScreen();
     }
 
     return const HomeScreen(); // role user/mahasiswa

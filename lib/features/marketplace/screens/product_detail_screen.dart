@@ -166,6 +166,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                           ),
+                          Builder(
+                            builder: (ctx) {
+                              final userId =
+                                  ctx.read<AuthProvider>().user?.id;
+                              if (userId == null ||
+                                  product.seller.id != userId) {
+                                return const SizedBox.shrink();
+                              }
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.market,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.storefront_rounded,
+                                        size: 12, color: Colors.white),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Produk Anda',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                           if (product.averageRating > 0)
                             Row(
                               children: [

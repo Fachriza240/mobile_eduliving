@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../marketplace/screens/become_provider_marketplace_screen.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/booking_provider.dart';
 import '../../profile/screens/booking_list_screen.dart';
 import '../../profile/screens/edit_profile_screen.dart';
+// ← UBAH: baris import provider_marketplace_list_screen dihapus dari sini
 
 class ProfilTab extends StatelessWidget {
   const ProfilTab({super.key});
@@ -49,7 +51,6 @@ class ProfilTab extends StatelessWidget {
     );
   }
 
-  // ── Header Avatar Biru ────────────────────────────
   Widget _profileHeader(BuildContext context, AuthProvider auth) {
     final user = auth.user!;
     return Container(
@@ -57,7 +58,6 @@ class ProfilTab extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Row(
         children: [
-          // Avatar gradient biru brand
           Container(
             width: 76,
             height: 76,
@@ -77,7 +77,6 @@ class ProfilTab extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,8 +111,6 @@ class ProfilTab extends StatelessWidget {
               ],
             ),
           ),
-
-          // Tombol edit
           GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -134,7 +131,6 @@ class ProfilTab extends StatelessWidget {
     );
   }
 
-  // ── Statistik Booking ─────────────────────────────
   Widget _statsRow(BuildContext context) {
     return Consumer<BookingProvider>(
       builder: (_, prov, __) => Container(
@@ -177,8 +173,9 @@ class ProfilTab extends StatelessWidget {
   Widget _divider() =>
       Container(width: 1, height: 36, color: AppColors.divider);
 
-  // ── Menu List ─────────────────────────────────────
   Widget _menuList(BuildContext context, AuthProvider auth) {
+    final user = auth.user!;
+
     return Container(
       color: AppColors.white,
       child: Column(
@@ -206,6 +203,57 @@ class ProfilTab extends StatelessWidget {
               onTap: () => Navigator.pushNamed(context, '/bookmarks')),
           _dividerFull(),
           _sectionLabel('Akun'),
+
+          // Kondisi 1: Sudah di-approve → Buka Toko
+          if (user.isApprovedSeller)
+            _item(context,
+                icon: Icons.storefront_rounded,
+                label: 'Buka Toko',
+                desc: 'Kelola produk dan pesanan kamu',
+                iconBg: AppColors.marketLight,
+                iconColor: AppColors.market,
+                onTap: () {
+                  // ← UBAH: set isSellerModeActive = true
+                  // agar RootScreen render ProviderMarketplaceHomeScreen
+                  auth.updateUserLocal(
+                    user.copyWith(isSellerModeActive: true),
+                  );
+                  Navigator.pushNamedAndRemoveUntil(
+                    context, '/home', (_) => false,
+                  );
+                }),
+
+          // Kondisi 2: Sudah submit, menunggu admin
+          if (user.isPendingSeller)
+            _itemStatic(context,
+                icon: Icons.hourglass_top_rounded,
+                label: 'Pengajuan Penjual',
+                desc: 'Menunggu persetujuan admin',
+                iconBg: const Color(0xFFFFF8E1),
+                iconColor: const Color(0xFFF9A825)),
+
+          // Kondisi 3: Belum daftar → form pendaftaran
+          if (user.isNotRegisteredSeller)
+            _item(context,
+                icon: Icons.storefront_rounded,
+                label: 'Jadi Penjual',
+                desc: 'Daftar sebagai provider marketplace',
+                iconBg: AppColors.marketLight,
+                iconColor: AppColors.market,
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const BecomeProviderMarketplaceScreen(),
+                    ),
+                  );
+                  if (context.mounted) {
+                    await context.read<AuthProvider>().refreshUser();
+                  }
+                }),
+
+          _dividerFull(),
           _item(context,
               icon: Icons.person_outline_rounded,
               label: 'Edit Profil',
@@ -321,15 +369,71 @@ class ProfilTab extends StatelessWidget {
         ),
       );
 
+  Widget _itemStatic(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String desc,
+    required Color iconBg,
+    required Color iconColor,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+                color: iconBg, borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: iconColor, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
+                Text(desc,
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 11,
+                        color: AppColors.textHint)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFFFE082)),
+            ),
+            child: const Text(
+              'Pending',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFFF9A825),
+              ),
+            ),
+          ),
+        ]),
+      );
+
   Widget _dividerFull() =>
       const Divider(height: 1, indent: 74, color: AppColors.divider);
 
-  // ── Tampilan Tamu ─────────────────────────────────
   Widget _guestView(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar:
-          AppBar(automaticallyImplyLeading: false, title: const Text('Profil')),
+      appBar: AppBar(
+          automaticallyImplyLeading: false, title: const Text('Profil')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -384,10 +488,11 @@ class ProfilTab extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Keluar dari EduLiving?',
-            style:
-                TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+            style: TextStyle(
+                fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
         content: const Text('Anda akan logout dari akun ini.',
             style: TextStyle(
                 fontFamily: 'Poppins',
@@ -398,7 +503,8 @@ class ProfilTab extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Text('Batal')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style:
+                ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               Navigator.pop(context);
               await auth.logout();
@@ -421,7 +527,8 @@ class ProfilTab extends StatelessWidget {
             style: const TextStyle(fontFamily: 'Poppins')),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
