@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../auth/providers/auth_provider.dart';
+import '../profile/screens/edit_profile_screen.dart';
+import '../profile/screens/change_password_screen.dart';
 
 /// Tab Profil versi Provider — sama seperti user tapi dengan badge role penyedia
 /// dan tombol menu yang relevan untuk penyedia.
@@ -124,7 +126,7 @@ class ProviderProfileTab extends StatelessWidget {
                         iconColor: color,
                         iconBg: colorLight,
                         title: 'Ubah Kata Sandi',
-                        onTap: () => _soon(context),
+                        onTap: () => _goToChangePassword(context),
                       ),
                     ],
                   ),
@@ -219,10 +221,17 @@ class ProviderProfileTab extends StatelessWidget {
   }
 
   void _goToEditProfile(BuildContext ctx) {
-    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-      content: Text('Gunakan tab Edit Profil dari menu user.'),
-      behavior: SnackBarBehavior.floating,
-    ));
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+    );
+  }
+
+  void _goToChangePassword(BuildContext ctx) {
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+    );
   }
 
   void _soon(BuildContext ctx) {
