@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/marketplace_provider.dart';
 import '../models/marketplace_model.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/app_helpers.dart';
+import '../../../core/widgets/common_widgets.dart';
 import 'product_detail_screen.dart';
 import '../../../features/auth/providers/auth_provider.dart'; 
 
 class MarketplaceScreen extends StatefulWidget {
-  const MarketplaceScreen({super.key});
+  final bool showBackButton;
+  const MarketplaceScreen({super.key, this.showBackButton = false});
 
   @override
   State<MarketplaceScreen> createState() => _MarketplaceScreenState();
@@ -18,6 +19,14 @@ class MarketplaceScreen extends StatefulWidget {
 class _MarketplaceScreenState extends State<MarketplaceScreen> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+
+  final _categories = const [
+    {'id': '', 'label': 'Semua'},
+    {'id': '1', 'label': 'Pakaian'},
+    {'id': '2', 'label': 'Elektronik'},
+    {'id': '3', 'label': 'Buku'},
+    {'id': '4', 'label': 'Lainnya'},
+  ];
 
   @override
   void initState() {
@@ -60,20 +69,34 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Barang',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
+        automaticallyImplyLeading: widget.showBackButton,
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 19),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () => Navigator.pushNamed(context, '/transactions'),
-            icon: const Icon(Icons.receipt_long_outlined),
-            tooltip: 'Transaksi Saya',
-          ),
-        ],
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.marketLight,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.storefront_rounded,
+                  color: AppColors.market, size: 18),
+            ),
+            const SizedBox(width: 10),
+            const Text('Barang',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary)),
+          ],
+        ),
       ),
       body: Column(
         children: [
@@ -84,39 +107,15 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: Container(
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: TextField(
-                      controller: _searchCtrl,
-                      onSubmitted: (v) => context
-                          .read<MarketplaceProvider>()
-                          .setFilter(search: v),
-                      decoration: InputDecoration(
-                        hintText: 'Cari produk...',
-                        hintStyle:
-                            TextStyle(color: Colors.grey[400], fontSize: 13),
-                        prefixIcon: Icon(Icons.search,
-                            size: 18, color: Colors.grey[400]),
-                        suffixIcon: _searchCtrl.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.close, size: 16),
-                                onPressed: () {
-                                  _searchCtrl.clear();
-                                  context
-                                      .read<MarketplaceProvider>()
-                                      .setFilter(search: '');
-                                },
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
+                  child: EduSearchBar(
+                    controller: _searchCtrl,
+                    hint: 'Cari produk...',
+                    onChanged: (v) => context
+                        .read<MarketplaceProvider>()
+                        .setFilter(search: v),
+                    onClear: () => context
+                        .read<MarketplaceProvider>()
+                        .setFilter(search: ''),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -129,12 +128,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       color: AppColors.market.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.tune, color: AppColors.market, size: 20),
+                    child: const Icon(Icons.tune, color: AppColors.market, size: 20),
                   ),
                 ),
               ],
             ),
           ),
+
 
           // Active filter chips
           Consumer<MarketplaceProvider>(
@@ -265,18 +265,20 @@ class _ProductCard extends StatelessWidget {
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(12)),
                   child: product.firstImage.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: AppHelpers.getImageUrl(product.firstImage),
-                          height: 130,
+                      ? EduImage(
+                          path: product.firstImage,
                           width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => _imagePlaceholder(),
+                          height: 130,
+                          borderRadius: 0,
+                          placeholderIcon: Icons.storefront_outlined,
+                          placeholderColor: AppColors.marketLight,
+                          iconColor: AppColors.market,
                         )
                       : _imagePlaceholder(),
                 ),
                 // Kondisi badge
                 Positioned(
-                  top: 8,
+                  bottom: 8,
                   left: 8,
                   child: Container(
                     padding:
@@ -296,7 +298,7 @@ class _ProductCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              Builder(
+                Builder(
                   builder: (ctx) {
                     final userId =
                         ctx.read<AuthProvider>().user?.id;
@@ -316,7 +318,7 @@ class _ProductCard extends StatelessWidget {
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             Icon(Icons.storefront_rounded,
                                 size: 10, color: Colors.white),
                             SizedBox(width: 3),

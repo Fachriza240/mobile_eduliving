@@ -767,7 +767,7 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
                       const Icon(Icons.close, size: 18, color: AppColors.error),
                 )
               else
-                const Text('Browse',
+                const Text('Pilih File',
                     style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,

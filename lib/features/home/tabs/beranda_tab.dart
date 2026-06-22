@@ -5,10 +5,13 @@ import '../../../core/constants/api_constants.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../residence/screens/residence_list_screen.dart';
-import '../../activity/screens/activity_list_screen.dart';
+import 'hunian_tab.dart';
+import 'acara_tab.dart';
+import '../../residence/screens/residence_detail_screen.dart';
+import '../../activity/screens/activity_detail_screen.dart';
 import '../../marketplace/screens/marketplace_screen.dart';
 import '../../marketplace/screens/product_detail_screen.dart';
+import '../../marketplace/screens/transaction_list_screen.dart';
 import '../search_screen.dart';
 
 class BerandaTab extends StatefulWidget {
@@ -68,7 +71,6 @@ class _BerandaTabState extends State<BerandaTab> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
-    final firstName = (user?.name ?? 'Mahasiswa').split(' ').first;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -79,16 +81,131 @@ class _BerandaTabState extends State<BerandaTab> {
           slivers: [
             // ── Hero AppBar biru tua ──────────────
             SliverAppBar(
-              expandedHeight: 185,
+              expandedHeight: 120,
               pinned: true,
               automaticallyImplyLeading: false,
-              backgroundColor: AppColors.primaryDark,
-              flexibleSpace: FlexibleSpaceBar(
-                background: _buildHero(firstName),
+              backgroundColor: const Color(0xFF1E3A8A),
+              // Logo tetap terlihat saat scroll
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.school_rounded, color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'EduLiving',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
+              // Notif + Avatar tetap terlihat saat scroll
+              actions: [
+                // Notifikasi
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/notifications'),
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(Icons.notifications_none_rounded,
+                            color: Colors.white, size: 22),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: CircleAvatar(
+                            radius: 4,
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Avatar foto profil
+                GestureDetector(
+                  onTap: () {},
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.2),
+                      image: user?.profilePicture != null
+                          ? DecorationImage(
+                              image: NetworkImage(user!.profilePicture!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: user?.profilePicture == null
+                        ? Center(
+                            child: Text(
+                              (user?.name ?? 'M')[0].toUpperCase(),
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 16),
+              ],
+              // Search bar di bagian bawah appbar
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(56),
-                child: _buildSearchBar(),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SearchScreen()),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search, color: Colors.white.withValues(alpha: 0.7), size: 20),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Cari hunian, acara, atau barang...',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
 
@@ -114,164 +231,59 @@ class _BerandaTabState extends State<BerandaTab> {
     );
   }
 
-  // ── Hero gradient biru tua ────────────────────────
-  Widget _buildHero(String firstName) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1E3A8A),
-            Color(0xFF1E40AF),
-            Color(0xFF2563EB),
-          ],
-          stops: [0.0, 0.5, 1.0],
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 60, 20, 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Halo, $firstName! 👋',
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Temukan kebutuhan kampusmu',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.80),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Notifikasi
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/notifications'),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.notifications_outlined,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Search bar ────────────────────────────────────
-  Widget _buildSearchBar() {
-    return Container(
-      color: AppColors.primaryDeep,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: GestureDetector(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const SearchScreen()),
-        ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.search, color: AppColors.textHint, size: 20),
-              SizedBox(width: 10),
-              Text(
-                'Cari hunian, acara, atau barang...',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  color: AppColors.textHint,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildBody() {
     final residences = (_homeData?['residences'] as List?) ?? [];
     final activities = (_homeData?['activities'] as List?) ?? [];
     final products = (_homeData?['products'] as List?) ?? [];
-    final categories = (_homeData?['categories'] as List?) ?? [];
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Quick Menu ───────────────────────
-          const Text('Menu Utama',
-              style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary)),
-          const SizedBox(height: 12),
-          _buildQuickMenu(),
+          // ── Sapaan & Welcome Card ─────────────
+          _buildWelcomeCard(),
           const SizedBox(height: 24),
+
+          // ── Menu Grid ───────────────────────
+          _buildGridMenu(),
+          const SizedBox(height: 32),
 
           // ── Hunian Terbaru ───────────────────
           SectionHeader(
             title: 'Hunian Terbaru',
             onSeeAll: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ResidenceListScreen()),
+              MaterialPageRoute(builder: (_) => const HunianTab(showBackButton: true)),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _buildResidenceRow(residences),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           // ── Acara Mendatang ──────────────────
           SectionHeader(
-            title: 'Acara Mendatang',
+            title: 'Kegiatan Mendatang',
             seeAllColor: AppColors.activity,
             onSeeAll: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ActivityListScreen()),
+              MaterialPageRoute(builder: (_) => const AcaraTab(showBackButton: true)),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _buildActivityCol(activities),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           // ── Produk Marketplace ───────────────
           SectionHeader(
-            title: 'Barang Terbaru',
+            title: 'Barang Terbaru', 
             seeAllColor: AppColors.market,
             onSeeAll: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const MarketplaceScreen()),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _buildProductRow(products),
           const SizedBox(height: 24),
         ],
@@ -279,139 +291,195 @@ class _BerandaTabState extends State<BerandaTab> {
     );
   }
 
-  // ── Quick Menu 4 item ─────────────────────────────
-  Widget _buildQuickMenu() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  // ── Welcome Card ────────────────────────────────
+  Widget _buildWelcomeCard() {
+    final user = context.watch<AuthProvider>().user;
+    final firstName = (user?.name ?? 'Mahasiswa').split(' ').first;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Halo, $firstName! 👋',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Selamat Datang di EduLiving',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Temukan hunian, kegiatan, dan produk terbaik',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              color: Colors.white.withValues(alpha: 0.85),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Menu Utama 2x2 Grid ─────────────────────────────
+  Widget _buildGridMenu() {
+    return Column(
       children: [
-        _menuItem(
-          icon: Icons.home_work_rounded,
-          label: 'Hunian',
-          color: AppColors.residence,
-          bg: AppColors.residenceLight,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ResidenceListScreen()),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _gridMenuCard(
+                icon: Icons.business_rounded,
+                title: 'Hunian',
+                subtitle: 'Cari tempat tinggal',
+                iconColor: Colors.blue,
+                bgColor: Colors.blue.withValues(alpha: 0.1),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HunianTab(showBackButton: true)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _gridMenuCard(
+                icon: Icons.event_note_rounded,
+                title: 'Kegiatan',
+                subtitle: 'Ikuti kegiatan kampus',
+                iconColor: Colors.green,
+                bgColor: Colors.green.withValues(alpha: 0.1),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AcaraTab(showBackButton: true)),
+                ),
+              ),
+            ),
+          ],
         ),
-        _menuItem(
-          icon: Icons.event_rounded,
-          label: 'Acara',
-          color: AppColors.activity,
-          bg: AppColors.activityLight,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ActivityListScreen()),
-          ),
-        ),
-        _menuItem(
-          icon: Icons.store_rounded,
-          label: 'Barang',
-          color: AppColors.market,
-          bg: AppColors.marketLight,
-          onTap: () => Navigator.pushNamed(context, '/marketplace'),
-        ),
-        _menuItem(
-          icon: Icons.bookmark_rounded,
-          label: 'Bookmark',
-          color: AppColors.primary,
-          bg: AppColors.primaryLight,
-          onTap: () => Navigator.pushNamed(context, '/bookmarks'),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _gridMenuCard(
+                icon: Icons.storefront_rounded,
+                title: 'Barang',
+                subtitle: 'Belanja produk',
+                iconColor: Colors.orange,
+                bgColor: Colors.orange.withValues(alpha: 0.1),
+                onTap: () => Navigator.pushNamed(context, '/marketplace'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _gridMenuCard(
+                icon: Icons.receipt_long_rounded,
+                title: 'Transaksi',
+                subtitle: 'Riwayat belanja',
+                iconColor: Colors.deepPurpleAccent,
+                bgColor: Colors.deepPurpleAccent.withValues(alpha: 0.1),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TransactionListScreen()),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildCategories(List categories) {
-    return SizedBox(
-      height: 36,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        itemBuilder: (_, i) {
-          final cat = categories[i] as Map<String, dynamic>;
-          final type = cat['type']?.toString() ?? '';
-          final color = type == 'residence'
-              ? AppColors.residence
-              : type == 'activity'
-                  ? AppColors.activity
-                  : AppColors.market;
-          final bgColor = type == 'residence'
-              ? AppColors.residenceLight
-              : type == 'activity'
-                  ? AppColors.activityLight
-                  : AppColors.marketLight;
-
-          return GestureDetector(
-            onTap: () {
-              if (type == 'residence') {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ResidenceListScreen(),
-                    ));
-              } else if (type == 'activity') {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ActivityListScreen(),
-                    ));
-              } else {
-                Navigator.pushNamed(context, '/marketplace');
-              }
-            },
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: color.withValues(alpha: 0.3)),
-              ),
-              child: Text(
-                cat['name']?.toString() ?? '',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _menuItem({
+  Widget _gridMenuCard({
     required IconData icon,
-    required String label,
-    required Color color,
-    required Color bg,
+    required String title,
+    required String subtitle,
+    required Color iconColor,
+    required Color bgColor,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 62,
-            height: 62,
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 1),
+            )
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: iconColor, size: 24),
             ),
-            child: Icon(icon, color: color, size: 30),
-          ),
-          const SizedBox(height: 6),
-          Text(label,
-              style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary)),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11,
+                      color: AppColors.textHint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -497,11 +565,11 @@ class _ResidenceHCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ResidenceListScreen(initialId: data['id'] as int?),
+          context,
+          MaterialPageRoute(
+            builder: (_) => ResidenceDetailScreen(id: data['id'] as int),
+          ),
         ),
-      ),
       child: Container(
         width: 175,
         margin: const EdgeInsets.only(right: 12),
@@ -515,6 +583,7 @@ class _ResidenceHCard extends StatelessWidget {
           children: [
             EduImage(
               path: imgPath,
+              width: double.infinity,
               height: 110,
               borderRadius: 12,
               placeholderIcon: Icons.home_work_outlined,
@@ -589,11 +658,11 @@ class _ActivityHCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ActivityListScreen(initialId: data['id'] as int?),
+          context,
+          MaterialPageRoute(
+            builder: (_) => ActivityDetailScreen(id: data['id'] as int),
+          ),
         ),
-      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
@@ -739,6 +808,7 @@ class _ProductHCard extends StatelessWidget {
           children: [
             EduImage(
               path: imgPath,
+              width: double.infinity,
               height: 110,
               borderRadius: 12,
               placeholderIcon: Icons.storefront_outlined,

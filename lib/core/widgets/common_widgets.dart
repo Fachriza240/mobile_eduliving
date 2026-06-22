@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../constants/app_colors.dart';
 import '../constants/api_constants.dart';
+import '../utils/storage_helper.dart';
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -13,11 +16,32 @@ String buildImageUrl(String path) {
   if (path.startsWith('http')) return path;
 
   // Hapus slash di awal jika ada
-  final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+  String cleanPath = path.startsWith('/') ? path.substring(1) : path;
+
+  // Hapus prefix 'storage/' jika ada (Laravel menyimpan di storage/app/public)
+  // tapi route /file/ sudah handle ini
+  // Jangan double-prefix: jika sudah 'api/v1/file/...' jangan tambah lagi
+  if (cleanPath.startsWith('api/')) {
+    final baseHost = ApiConstants.baseUrl.replaceAll('/api/v1', '');
+    return '$baseHost/$cleanPath';
+  }
 
   // Gunakan route /api/v1/file/ (bypass symlink Windows)
   final base = ApiConstants.baseUrl; // sudah include /api/v1
   return '$base/file/$cleanPath';
+}
+
+/// Mendapatkan header auth untuk request gambar.
+/// Dipanggil async karena token disimpan di SharedPreferences.
+Future<Map<String, String>> getImageAuthHeaders() async {
+  final token = await StorageHelper.getToken();
+  if (token != null && token.isNotEmpty) {
+    return {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
+    };
+  }
+  return {'Accept': 'application/json'};
 }
 
 String formatRupiah(double amount, {String suffix = ''}) {
@@ -135,7 +159,7 @@ class _SkeletonBoxState extends State<SkeletonBox>
 // NETWORK IMAGE
 // ============================================================
 
-class EduImage extends StatelessWidget {
+class EduImage extends StatefulWidget {
   final String? path;
   final double? width;
   final double? height;
@@ -158,33 +182,61 @@ class EduImage extends StatelessWidget {
   });
 
   @override
+  State<EduImage> createState() => _EduImageState();
+}
+
+class _EduImageState extends State<EduImage> {
+  Map<String, String>? _headers;
+  bool _headersLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHeaders();
+  }
+
+  Future<void> _loadHeaders() async {
+    final headers = await getImageAuthHeaders();
+    if (mounted) {
+      setState(() {
+        _headers = headers;
+        _headersLoaded = true;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final url =
-        (path != null && path!.isNotEmpty) ? buildImageUrl(path!) : null;
+    final url = (widget.path != null && widget.path!.isNotEmpty)
+        ? buildImageUrl(widget.path!)
+        : null;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: url != null
-          ? Image.network(
-              url,
-              width: width,
-              height: height,
-              fit: fit,
-              loadingBuilder: (_, child, progress) =>
-                  progress == null ? child : _placeholder(),
-              errorBuilder: (_, __, ___) => _placeholder(),
+      borderRadius: BorderRadius.circular(widget.borderRadius),
+      child: url != null && _headersLoaded
+          ? CachedNetworkImage(
+              imageUrl: url,
+              httpHeaders: _headers,
+              width: widget.width,
+              height: widget.height,
+              fit: widget.fit,
+              memCacheWidth: (widget.width != null && widget.width!.isFinite) 
+                  ? (widget.width! * 2).toInt() 
+                  : 800,
+              placeholder: (context, url) => _placeholder(),
+              errorWidget: (context, url, error) => _placeholder(),
             )
           : _placeholder(),
     );
   }
 
   Widget _placeholder() => Container(
-        width: width,
-        height: height,
-        color: placeholderColor ?? AppColors.primaryLight,
+        width: widget.width,
+        height: widget.height,
+        color: widget.placeholderColor ?? AppColors.primaryLight,
         child: Icon(
-          placeholderIcon,
-          color: iconColor ?? AppColors.primary,
+          widget.placeholderIcon,
+          color: widget.iconColor ?? AppColors.primary,
           size: 28,
         ),
       );
@@ -554,19 +606,55 @@ class EduAppBar extends StatelessWidget implements PreferredSizeWidget {
 // SEARCH BAR
 // ============================================================
 
-class EduSearchBar extends StatelessWidget {
+class EduSearchBar extends StatefulWidget {
   final TextEditingController controller;
   final String hint;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final VoidCallback? onClear;
+  final Duration debounceDuration;
 
   const EduSearchBar({
     super.key,
     required this.controller,
     this.hint = 'Cari...',
     this.onChanged,
+    this.onSubmitted,
     this.onClear,
+    this.debounceDuration = const Duration(milliseconds: 500),
   });
+
+  @override
+  State<EduSearchBar> createState() => _EduSearchBarState();
+}
+
+class _EduSearchBarState extends State<EduSearchBar> {
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    // Rebuild agar clear button muncul/hilang
+    if (mounted) setState(() {});
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(widget.debounceDuration, () {
+      widget.onChanged?.call(value);
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    widget.controller.removeListener(_onTextChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -577,23 +665,25 @@ class EduSearchBar extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: TextField(
-        controller: controller,
-        onChanged: onChanged,
+        controller: widget.controller,
+        onChanged: _onChanged,
+        onSubmitted: widget.onSubmitted,
         style: const TextStyle(
             fontFamily: 'Poppins', fontSize: 14, color: AppColors.textPrimary),
         decoration: InputDecoration(
-          hintText: hint,
+          hintText: widget.hint,
           hintStyle: const TextStyle(
               fontFamily: 'Poppins', fontSize: 14, color: AppColors.textHint),
           prefixIcon:
               const Icon(Icons.search, color: AppColors.textHint, size: 20),
-          suffixIcon: controller.text.isNotEmpty
+          suffixIcon: widget.controller.text.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear,
                       size: 18, color: AppColors.textHint),
                   onPressed: () {
-                    controller.clear();
-                    onClear?.call();
+                    widget.controller.clear();
+                    _debounce?.cancel();
+                    widget.onClear?.call();
                   },
                 )
               : null,
@@ -604,6 +694,7 @@ class EduSearchBar extends StatelessWidget {
     );
   }
 }
+
 
 // ============================================================
 // FILTER CHIP

@@ -26,9 +26,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
     setState(() => _isLoading = true);
     try {
       final res = await _api.get('/user/notifications');
+      // Backend return: [ status, pagination, notifications [...], unread_count: N ]
+      final data = res['data'];
       setState(() {
-        _notifications = res['data'] ?? [];
-        _unreadCount = _notifications.where((n) => n['read_at'] == null).length;
+        if (data is Map) {
+          _notifications = data['notifications'] ?? data['data'] ?? [];
+          _unreadCount = data['unread_count'] ?? 0;
+        } else if (data is List) {
+          _notifications = data;
+          _unreadCount =
+              _notifications.where((n) => n['read_at'] == null).length;
+        } else {
+          _notifications = [];
+        }
       });
     } catch (_) {
       setState(() => _notifications = []);
@@ -122,6 +132,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final n = _notifications[i];
     final isUnread = n['read_at'] == null;
     final type = n['type']?.toString().split('.').last;
+    // Backend Ikbal kirim: { id, type, title, message, is_unread, created_at, url }
+    final title = n['title']?.toString() ?? n['data']?['title'] ?? 'Notifikasi';
+    final message = n['message']?.toString() ?? n['data']?['message'] ?? '';
 
     return InkWell(
       onTap: () => _markRead(i),
@@ -146,7 +159,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    n['data']?['title'] ?? 'Notifikasi',
+                    title,
                     style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 13,
@@ -156,7 +169,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    n['data']?['message'] ?? '',
+                    message,
                     style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,

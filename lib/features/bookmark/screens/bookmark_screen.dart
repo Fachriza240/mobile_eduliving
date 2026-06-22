@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/bookmark_provider.dart';
 import '../models/bookmark_model.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/app_helpers.dart';
+import '../../../core/widgets/common_widgets.dart';
 import '../../residence/screens/residence_detail_screen.dart';
 import '../../activity/screens/activity_detail_screen.dart';
 import '../../marketplace/screens/product_detail_screen.dart';
@@ -57,7 +57,7 @@ class _BookmarkScreenState extends State<BookmarkScreen>
           tabs: const [
             Tab(text: 'Hunian'),
             Tab(text: 'Acara'),
-            Tab(text: 'Marketplace'),
+            Tab(text: 'Barang'),
           ],
         ),
       ),
@@ -214,13 +214,14 @@ class _BookmarkCard extends StatelessWidget {
                 bottomLeft: Radius.circular(12),
               ),
               child: item.firstImage.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: AppHelpers.getImageUrl(item.firstImage),
+                  ? EduImage(
+                      path: item.firstImage,
                       width: 90,
                       height: 90,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) =>
-                          _imagePlaceholder(accentColor),
+                      placeholderIcon:
+                          _getPlaceholderIcon(bookmark.bookmarkableType),
+                      placeholderColor: accentColor.withOpacity(0.1),
+                      iconColor: accentColor,
                     )
                   : _imagePlaceholder(accentColor),
             ),
@@ -311,6 +312,19 @@ class _BookmarkCard extends StatelessWidget {
       child:
           Icon(Icons.image_outlined, color: color.withOpacity(0.4), size: 28),
     );
+  }
+
+  IconData _getPlaceholderIcon(String type) {
+    switch (type) {
+      case 'Residence':
+        return Icons.home_work_outlined;
+      case 'Activity':
+        return Icons.event_outlined;
+      case 'MarketplaceProduct':
+        return Icons.storefront_outlined;
+      default:
+        return Icons.image_outlined;
+    }
   }
 }
 

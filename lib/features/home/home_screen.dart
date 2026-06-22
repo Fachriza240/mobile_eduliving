@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../marketplace/screens/marketplace_screen.dart';
 import 'tabs/beranda_tab.dart';
 import 'tabs/hunian_tab.dart';
 import 'tabs/acara_tab.dart';
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
     BerandaTab(),
     HunianTab(),
     AcaraTab(),
+    MarketplaceScreen(),
     ProfilTab(),
   ];
 
@@ -75,6 +77,11 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.event_outlined),
               activeIcon: Icon(Icons.event_rounded),
               label: 'Acara',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.storefront_outlined),
+              activeIcon: Icon(Icons.storefront_rounded),
+              label: 'Barang',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline_rounded),

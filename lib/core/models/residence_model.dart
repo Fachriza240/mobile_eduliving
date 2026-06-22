@@ -21,6 +21,7 @@ class ResidenceModel {
   final double? ratingAverage;
   final int? ratingCount;
   final bool? isBookmarked;
+  final List<dynamic> ratings;
 
   ResidenceModel({
     required this.id,
@@ -45,6 +46,7 @@ class ResidenceModel {
     this.ratingAverage,
     this.ratingCount,
     this.isBookmarked,
+    this.ratings = const [],
   });
 
   factory ResidenceModel.fromJson(Map<String, dynamic> json) {
@@ -85,6 +87,7 @@ class ResidenceModel {
           : null,
       ratingCount: json['rating_count'],
       isBookmarked: json['is_bookmarked'] as bool?,
+      ratings: json['ratings'] as List<dynamic>? ?? [],
     );
   }
 

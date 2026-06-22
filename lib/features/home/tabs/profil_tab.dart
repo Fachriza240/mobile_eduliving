@@ -64,17 +64,25 @@ class ProfilTab extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: AppColors.primaryGradient,
               borderRadius: BorderRadius.circular(38),
+              image: user.profilePicture != null
+                  ? DecorationImage(
+                      image: NetworkImage(user.profilePicture!),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
-            child: Center(
-              child: Text(
-                user.initials,
-                style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white),
-              ),
-            ),
+            child: user.profilePicture == null
+                ? Center(
+                    child: Text(
+                      user.initials,
+                      style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white),
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -195,6 +203,14 @@ class ProfilTab extends StatelessWidget {
           }),
           _dividerFull(),
           _item(context,
+              icon: Icons.receipt_long_outlined,
+              label: 'Riwayat Transaksi',
+              desc: 'Pembelian barang dari marketplace',
+              iconBg: AppColors.marketLight,
+              iconColor: AppColors.market,
+              onTap: () => Navigator.pushNamed(context, '/transactions')),
+          _dividerFull(),
+          _item(context,
               icon: Icons.bookmark_border_rounded,
               label: 'Bookmark Saya',
               desc: 'Hunian dan acara yang disimpan',
@@ -211,17 +227,18 @@ class ProfilTab extends StatelessWidget {
                 label: 'Buka Toko',
                 desc: 'Kelola produk dan pesanan kamu',
                 iconBg: AppColors.marketLight,
-                iconColor: AppColors.market,
-                onTap: () {
-                  // ← UBAH: set isSellerModeActive = true
-                  // agar RootScreen render ProviderMarketplaceHomeScreen
-                  auth.updateUserLocal(
-                    user.copyWith(isSellerModeActive: true),
-                  );
-                  Navigator.pushNamedAndRemoveUntil(
-                    context, '/home', (_) => false,
-                  );
-                }),
+                iconColor: AppColors.market, onTap: () {
+              // ← UBAH: set isSellerModeActive = true
+              // agar RootScreen render ProviderMarketplaceHomeScreen
+              auth.updateUserLocal(
+                user.copyWith(isSellerModeActive: true),
+              );
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/home',
+                (_) => false,
+              );
+            }),
 
           // Kondisi 2: Sudah submit, menunggu admin
           if (user.isPendingSeller)
@@ -239,19 +256,17 @@ class ProfilTab extends StatelessWidget {
                 label: 'Jadi Penjual',
                 desc: 'Daftar sebagai provider marketplace',
                 iconBg: AppColors.marketLight,
-                iconColor: AppColors.market,
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const BecomeProviderMarketplaceScreen(),
-                    ),
-                  );
-                  if (context.mounted) {
-                    await context.read<AuthProvider>().refreshUser();
-                  }
-                }),
+                iconColor: AppColors.market, onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const BecomeProviderMarketplaceScreen(),
+                ),
+              );
+              if (context.mounted) {
+                await context.read<AuthProvider>().refreshUser();
+              }
+            }),
 
           _dividerFull(),
           _item(context,
@@ -432,8 +447,8 @@ class ProfilTab extends StatelessWidget {
   Widget _guestView(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-          automaticallyImplyLeading: false, title: const Text('Profil')),
+      appBar:
+          AppBar(automaticallyImplyLeading: false, title: const Text('Profil')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -488,11 +503,10 @@ class ProfilTab extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Keluar dari EduLiving?',
-            style: TextStyle(
-                fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+            style:
+                TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
         content: const Text('Anda akan logout dari akun ini.',
             style: TextStyle(
                 fontFamily: 'Poppins',
@@ -503,8 +517,7 @@ class ProfilTab extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Text('Batal')),
           ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               Navigator.pop(context);
               await auth.logout();
@@ -527,8 +540,7 @@ class ProfilTab extends StatelessWidget {
             style: const TextStyle(fontFamily: 'Poppins')),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }

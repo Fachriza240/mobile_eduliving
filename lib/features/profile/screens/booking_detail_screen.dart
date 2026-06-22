@@ -574,21 +574,30 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   fontSize: 15,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
-          if (booking.fullName != null)
+          // ← UBAH: Bungkus dengan kondisi isResidence
+          if (booking.isResidence) ...[
+            if (booking.fullName != null)
+              InfoRow(
+                  icon: Icons.person_outline,
+                  label: 'Nama',
+                  value: booking.fullName!),
+            if (booking.email != null)
+              InfoRow(
+                  icon: Icons.email_outlined,
+                  label: 'Email',
+                  value: booking.email!),
+            if (booking.phone != null)
+              InfoRow(
+                  icon: Icons.phone_outlined,
+                  label: 'Telepon',
+                  value: booking.phone!),
+          ],
+          // ← UBAH: add 'bookingCode' dengan title 'Kode Booking'
+          if (booking.bookingCode != null)
             InfoRow(
-                icon: Icons.person_outline,
-                label: 'Nama',
-                value: booking.fullName!),
-          if (booking.email != null)
-            InfoRow(
-                icon: Icons.email_outlined,
-                label: 'Email',
-                value: booking.email!),
-          if (booking.phone != null)
-            InfoRow(
-                icon: Icons.phone_outlined,
-                label: 'Telepon',
-                value: booking.phone!),
+                icon: Icons.confirmation_number_outlined,
+                label: 'Kode Booking',
+                value: booking.bookingCode!),
           InfoRow(
               icon: Icons.receipt_outlined,
               label: 'ID Pemesanan',
@@ -597,6 +606,31 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               icon: Icons.calendar_today_outlined,
               label: 'Tanggal Pesan',
               value: formatDate(booking.createdAt)),
+          // Info peserta untuk booking acara
+          if (booking.isActivity) ...[
+            const SizedBox(height: 16),
+            const Text('Informasi Peserta',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            if (booking.fullName != null)
+              InfoRow(
+                  icon: Icons.badge_outlined,
+                  label: 'Nama Peserta',
+                  value: booking.fullName!),
+            if (booking.email != null)
+              InfoRow(
+                  icon: Icons.email_outlined,
+                  label: 'Email',
+                  value: booking.email!),
+            if (booking.phone != null)
+              InfoRow(
+                  icon: Icons.phone_outlined,
+                  label: 'Telepon',
+                  value: booking.phone!),
+          ],
         ],
       ),
     );

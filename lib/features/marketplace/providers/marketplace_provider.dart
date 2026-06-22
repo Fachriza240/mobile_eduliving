@@ -27,14 +27,17 @@ class MarketplaceProvider extends ChangeNotifier {
   int? get selectedCategoryId => _selectedCategoryId;
   String? get selectedCondition => _selectedCondition;
 
+  // Sentinel untuk membedakan 'tidak dikirim' vs 'set ke null'
+  static const _sentinel = Object();
+
   void setFilter({
     String? search,
-    int? categoryId,
-    String? condition,
+    Object? categoryId = _sentinel,
+    Object? condition = _sentinel,
   }) {
-    _searchQuery = search ?? _searchQuery;
-    _selectedCategoryId = categoryId;
-    _selectedCondition = condition;
+    if (search != null) _searchQuery = search;
+    if (categoryId != _sentinel) _selectedCategoryId = categoryId as int?;
+    if (condition != _sentinel) _selectedCondition = condition as String?;
     fetchProducts(reset: true);
   }
 
