@@ -3,10 +3,11 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../residence/providers/residence_provider.dart';
-import '../../residence/screens/residence_list_screen.dart';
+import '../../residence/screens/residence_detail_screen.dart';
 
 class HunianTab extends StatefulWidget {
-  const HunianTab({super.key});
+  final bool showBackButton;
+  const HunianTab({super.key, this.showBackButton = false});
 
   @override
   State<HunianTab> createState() => _HunianTabState();
@@ -51,7 +52,13 @@ class _HunianTabState extends State<HunianTab> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: widget.showBackButton,
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 19),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         backgroundColor: AppColors.white,
         title: Row(
           children: [
@@ -77,42 +84,93 @@ class _HunianTabState extends State<HunianTab> {
           preferredSize: const Size.fromHeight(58),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: EduSearchBar(
-              controller: _searchCtrl,
-              hint: 'Cari hunian, lokasi...',
-              onChanged: (q) => context.read<ResidenceProvider>().setSearch(q),
-              onClear: () => context.read<ResidenceProvider>().setSearch(''),
+            child: Row(
+              children: [
+                Expanded(
+                  child: EduSearchBar(
+                    controller: _searchCtrl,
+                    hint: 'Cari hunian, lokasi...',
+                    onChanged: (q) =>
+                        context.read<ResidenceProvider>().setSearch(q),
+                    onClear: () =>
+                        context.read<ResidenceProvider>().setSearch(''),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _showFilterSheet,
+                  child: Container(
+                    height: 42,
+                    width: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.residence.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.tune,
+                        color: AppColors.residence, size: 20),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
       body: Column(
         children: [
-          _buildCategoryFilter(),
+          // Active filter chips
+          Consumer<ResidenceProvider>(
+            builder: (context, p, _) {
+              final hasFilter =
+                  p.selectedCategory.isNotEmpty || p.selectedKosType != null;
+              if (!hasFilter) return const SizedBox.shrink();
+              return Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Row(
+                  children: [
+                    if (p.selectedCategory.isNotEmpty)
+                      _ActiveFilterChip(
+                        label: p.selectedCategory.toUpperCase(),
+                        onRemove: () => p.setFilter(category: ''),
+                      ),
+                    if (p.selectedCategory.isNotEmpty &&
+                        p.selectedKosType != null)
+                      const SizedBox(width: 8),
+                    if (p.selectedKosType != null)
+                      _ActiveFilterChip(
+                        label: 'Kos ${p.selectedKosType}'.toUpperCase(),
+                        onRemove: () => p.setFilter(kosType: null),
+                      ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => p.setFilter(category: '', kosType: null),
+                      child: const Text(
+                        'Reset filter',
+                        style: TextStyle(
+                          color: AppColors.residence,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           Expanded(child: _buildContent()),
         ],
       ),
     );
   }
 
-  // ── Filter Chip BIRU ──────────────────────────────
-  Widget _buildCategoryFilter() {
-    return Consumer<ResidenceProvider>(
-      builder: (_, prov, __) => Container(
-        height: 48,
-        color: AppColors.white,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          itemCount: _categories.length,
-          itemBuilder: (_, i) => FilterChipWidget(
-            label: _categories[i]['label']!,
-            isSelected: prov.selectedCategory == _categories[i]['id'],
-            onTap: () => prov.setCategory(_categories[i]['id']!),
-            selectedColor: AppColors.residence,
-          ),
-        ),
-      ),
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => const _FilterSheet(),
     );
   }
 
@@ -177,7 +235,7 @@ class _HunianTabState extends State<HunianTab> {
                 onTap: () => Navigator.push(
                   ctx,
                   MaterialPageRoute(
-                    builder: (_) => ResidenceListScreen(initialId: r.id),
+                    builder: (_) => ResidenceDetailScreen(id: r.id),
                   ),
                 ),
               );
@@ -249,6 +307,7 @@ class _ResidenceCard extends StatelessWidget {
                 ),
                 child: EduImage(
                   path: image,
+                  width: double.infinity,
                   height: 175,
                   borderRadius: 0,
                   placeholderIcon: Icons.home_work_outlined,
@@ -472,6 +531,227 @@ class _ResidenceSkelCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterSheet extends StatefulWidget {
+  const _FilterSheet();
+
+  @override
+  State<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends State<_FilterSheet> {
+  String _category = '';
+  String? _kosType;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = context.read<ResidenceProvider>();
+    _category = p.selectedCategory;
+    _kosType = p.selectedKosType;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Filter Hunian',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text('Tipe Hunian',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _FilterChipUI(
+                  label: 'Semua',
+                  value: '',
+                  selected: _category,
+                  onTap: (v) => setState(() {
+                        _category = v!;
+                        _kosType = null;
+                      })),
+              _FilterChipUI(
+                  label: 'Kos',
+                  value: 'kos',
+                  selected: _category,
+                  onTap: (v) => setState(() => _category = v!)),
+              _FilterChipUI(
+                  label: 'Kontrakan',
+                  value: 'kontrakan',
+                  selected: _category,
+                  onTap: (v) => setState(() {
+                        _category = v!;
+                        _kosType = null;
+                      })),
+              _FilterChipUI(
+                  label: 'Apartemen',
+                  value: 'apartemen',
+                  selected: _category,
+                  onTap: (v) => setState(() {
+                        _category = v!;
+                        _kosType = null;
+                      })),
+              _FilterChipUI(
+                  label: 'Rumah Sewa',
+                  value: 'rumah_sewa',
+                  selected: _category,
+                  onTap: (v) => setState(() {
+                        _category = v!;
+                        _kosType = null;
+                      })),
+            ],
+          ),
+          if (_category == 'kos' || _category == '') ...[
+            const SizedBox(height: 16),
+            const Text('Tipe Kos',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _FilterChipUI(
+                    label: 'Semua',
+                    value: null,
+                    selected: _kosType,
+                    onTap: (v) => setState(() => _kosType = v)),
+                _FilterChipUI(
+                    label: 'Putra',
+                    value: 'putra',
+                    selected: _kosType,
+                    onTap: (v) => setState(() => _kosType = v)),
+                _FilterChipUI(
+                    label: 'Putri',
+                    value: 'putri',
+                    selected: _kosType,
+                    onTap: (v) => setState(() => _kosType = v)),
+                _FilterChipUI(
+                    label: 'Campur',
+                    value: 'campur',
+                    selected: _kosType,
+                    onTap: (v) => setState(() => _kosType = v)),
+              ],
+            ),
+          ],
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () {
+                context.read<ResidenceProvider>().setFilter(
+                      category: _category,
+                      kosType: _kosType,
+                    );
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.residence,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Terapkan Filter',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterChipUI extends StatelessWidget {
+  final String label;
+  final String? value;
+  final String? selected;
+  final Function(String?) onTap;
+
+  const _FilterChipUI({
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = selected == value;
+    return GestureDetector(
+      onTap: () => onTap(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.residence : Colors.grey[100],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.residence : Colors.grey.shade300,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey[600],
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveFilterChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onRemove;
+
+  const _ActiveFilterChip({required this.label, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.residence.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.residence,
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onRemove,
+            child:
+                const Icon(Icons.close, size: 14, color: AppColors.residence),
           ),
         ],
       ),

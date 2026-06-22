@@ -154,6 +154,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   ),
                 ]),
               ),
+              const SizedBox(height: 8),
+              _section('Ulasan & Penilaian', _buildRatings(a.ratings)),
               const SizedBox(height: 100),
             ],
           ),
@@ -380,262 +382,67 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
 
-  // ── Form Pendaftaran Event ─────────────────────────────
-  void _showRegSheet(ActivityModel a) {
-    final user = context.read<AuthProvider>().user;
-    final nameCtrl = TextEditingController(text: user?.name ?? '');
-    final emailCtrl = TextEditingController(text: user?.email ?? '');
-    final phoneCtrl = TextEditingController(text: user?.phone ?? '');
-    final formKey = GlobalKey<FormState>();
-    bool isSubmitting = false;
-    String? err;
+  Widget _buildRatings(List<dynamic> ratings) {
+    if (ratings.isEmpty) {
+      return const Text('Belum ada ulasan untuk acara ini.',
+          style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              color: AppColors.textSecondary));
+    }
+    return Column(
+      children: ratings.map((r) {
+        final user = r['user'] as Map<String, dynamic>?;
+        final userName = user?['name'] ?? 'Pengguna';
+        final ratingVal = double.tryParse(r['rating']?.toString() ?? '0') ?? 0;
+        final comment = r['comment'] ?? '';
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => Container(
-          decoration: const BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
           ),
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.border,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  Row(children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.activityLight,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.how_to_reg_rounded,
-                          color: AppColors.activity, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Formulir Pendaftaran',
-                              style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700)),
-                          Text(a.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary)),
-                        ],
-                      ),
-                    ),
-                  ]),
-                  const SizedBox(height: 20),
-
-                  // Nama Lengkap
-                  _sheetLabel('Nama Lengkap'),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'Nama lengkap sesuai identitas',
-                      prefixIcon: Icon(Icons.person_outline, size: 20),
-                    ),
-                    validator: (v) => (v?.trim().isEmpty ?? true)
-                        ? 'Nama tidak boleh kosong'
-                        : null,
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Email
-                  _sheetLabel('Email'),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: emailCtrl,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      hintText: 'Email aktif Anda',
-                      prefixIcon: Icon(Icons.email_outlined, size: 20),
-                    ),
-                    validator: (v) {
-                      if (v?.trim().isEmpty ?? true) {
-                        return 'Email tidak boleh kosong';
-                      }
-                      if (!v!.contains('@')) {
-                        return 'Format email tidak valid';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Nomor Telepon
-                  _sheetLabel('Nomor Telepon'),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: phoneCtrl,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      hintText: 'Contoh: 08123456789',
-                      prefixIcon: Icon(Icons.phone_outlined, size: 20),
-                    ),
-                    validator: (v) {
-                      if (v?.trim().isEmpty ?? true) {
-                        return 'Nomor telepon tidak boleh kosong';
-                      }
-                      final digits = v!.trim().replaceAll(RegExp(r'\D'), '');
-                      if (digits.length < 8 || digits.length > 15) {
-                        return 'Nomor telepon 8–15 digit';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Harga
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.activityLight,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: AppColors.activity.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Biaya Pendaftaran',
-                            style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 13,
-                                color: AppColors.textSecondary)),
-                        Text(
-                          a.isFree ? 'Gratis' : formatRupiah(a.discountedPrice),
+                  Text(userName,
+                      style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, size: 16, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      Text(ratingVal.toString(),
                           style: const TextStyle(
                               fontFamily: 'Poppins',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.activity),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  if (err != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.errorLight,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(err!,
-                          style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12,
-                              color: AppColors.error)),
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-
-                  // Tombol daftar
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.activity),
-                    onPressed: isSubmitting
-                        ? null
-                        : () async {
-                            if (!formKey.currentState!.validate()) return;
-                            setSheet(() {
-                              isSubmitting = true;
-                              err = null;
-                            });
-                            try {
-                              // FIX: kirim field yang benar sesuai backend
-                              // participant_name, participant_email, participant_phone
-                              // check_in_date = tanggal acara (harus sama dengan event_date)
-                              // bookable_type = 'activity' (bukan 'App\\Models\\Activity')
-                              final phoneDigits = phoneCtrl.text
-                                  .trim()
-                                  .replaceAll(RegExp(r'\D'), '');
-                              await ApiService().post(
-                                ApiConstants.userBookings,
-                                data: {
-                                  'bookable_id': a.id,
-                                  'bookable_type': 'activity',
-                                  'participant_name': nameCtrl.text.trim(),
-                                  'participant_email': emailCtrl.text.trim(),
-                                  'participant_phone': phoneDigits,
-                                  // check_in_date harus sama dengan tanggal event
-                                  'check_in_date': a.eventDate != null
-                                      ? (a.eventDate is DateTime
-                                          ? (a.eventDate as DateTime)
-                                              .toIso8601String()
-                                              .split('T')
-                                              .first
-                                          : a.eventDate
-                                              .toString()
-                                              .split(' ')
-                                              .first)
-                                      : DateTime.now()
-                                          .toIso8601String()
-                                          .split('T')
-                                          .first,
-                                },
-                              );
-                              if (ctx.mounted) {
-                                Navigator.pop(ctx);
-                                _successDialog();
-                              }
-                            } catch (e) {
-                              setSheet(() {
-                                err = e
-                                    .toString()
-                                    .replaceAll('ApiException: ', '');
-                                isSubmitting = false;
-                              });
-                            }
-                          },
-                    child: isSubmitting
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Text('Kirim Pendaftaran'),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary)),
+                    ],
                   ),
                 ],
               ),
-            ),
+              if (comment.toString().trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(comment.toString(),
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        color: AppColors.textSecondary)),
+              ]
+            ],
           ),
-        ),
-      ),
+        );
+      }).toList(),
     );
   }
 

@@ -152,6 +152,8 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
                   ),
                 ]),
               ),
+              const SizedBox(height: 8),
+              _section('Ulasan & Penilaian', _buildRatings(r.ratings)),
               const SizedBox(height: 100),
             ],
           ),
@@ -398,6 +400,70 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
           fontSize: 13,
           height: 1.7,
           color: AppColors.textSecondary));
+
+  Widget _buildRatings(List<dynamic> ratings) {
+    if (ratings.isEmpty) {
+      return const Text('Belum ada ulasan untuk hunian ini.',
+          style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              color: AppColors.textSecondary));
+    }
+    return Column(
+      children: ratings.map((r) {
+        final user = r['user'] as Map<String, dynamic>?;
+        final userName = user?['name'] ?? 'Pengguna';
+        final ratingVal = double.tryParse(r['rating']?.toString() ?? '0') ?? 0;
+        final comment = r['comment'] ?? '';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(userName,
+                      style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, size: 16, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      Text(ratingVal.toString(),
+                          style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary)),
+                    ],
+                  ),
+                ],
+              ),
+              if (comment.toString().trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(comment.toString(),
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        color: AppColors.textSecondary)),
+              ]
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
 
   Widget _backBtn() => GestureDetector(
         onTap: () => Navigator.pop(context),

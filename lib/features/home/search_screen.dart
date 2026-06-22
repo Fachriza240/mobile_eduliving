@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
@@ -16,6 +17,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final _api = ApiService();
   final _ctrl = TextEditingController();
   final _focus = FocusNode();
+  Timer? _debounce;
 
   List _residences = [];
   List _activities = [];
@@ -31,9 +33,21 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _ctrl.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  void _onChanged(String q) {
+    _debounce?.cancel();
+    if (q.trim().isEmpty) {
+      setState(() { _hasSearched = false; _residences = []; _activities = []; _products = []; });
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _search(q);
+    });
   }
 
   Future<void> _search(String q) async {
@@ -55,6 +69,7 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() => _isLoading = false);
     }
   }
+
 
   int get _total => _residences.length + _activities.length + _products.length;
 
@@ -83,14 +98,15 @@ class _SearchScreenState extends State<SearchScreen> {
                     icon: const Icon(Icons.close, color: Colors.white70),
                     onPressed: () {
                       _ctrl.clear();
-                      setState(() { _hasSearched = false; });
+                      _debounce?.cancel();
+                      setState(() { _hasSearched = false; _residences = []; _activities = []; _products = []; });
                     },
                   )
                 : null,
           ),
           textInputAction: TextInputAction.search,
           onSubmitted: _search,
-          onChanged: (v) => setState(() {}),
+          onChanged: _onChanged,
         ),
       ),
       body: _isLoading

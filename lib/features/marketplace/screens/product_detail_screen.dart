@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/marketplace_provider.dart';
 import '../models/marketplace_model.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/app_helpers.dart';
+import '../../../core/widgets/common_widgets.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../bookmark/providers/bookmark_provider.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
@@ -78,6 +79,40 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             pinned: true,
             backgroundColor: Colors.white,
             foregroundColor: Colors.black,
+            actions: [
+              Consumer<BookmarkProvider>(
+                builder: (context, bookmarkProv, _) {
+                  final isBookmarked = bookmarkProv.isBookmarked(
+                      'MarketplaceProduct', product.id);
+                  return IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: Offset(0, 2))
+                        ],
+                      ),
+                      child: Icon(
+                        isBookmarked
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
+                        color:
+                            isBookmarked ? AppColors.market : Colors.grey[400],
+                        size: 20,
+                      ),
+                    ),
+                    onPressed: () =>
+                        bookmarkProv.toggle('MarketplaceProduct', product.id),
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 children: [
@@ -95,13 +130,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               color: AppColors.market.withOpacity(0.4)),
                         );
                       }
-                      return CachedNetworkImage(
-                        imageUrl: AppHelpers.getImageUrl(product.images[index]),
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Container(
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image_not_supported),
-                        ),
+                      return EduImage(
+                        path: product.images[index],
+                        height: 300,
+                        placeholderIcon: Icons.storefront_outlined,
+                        placeholderColor: AppColors.marketLight,
+                        iconColor: AppColors.market,
                       );
                     },
                   ),
@@ -121,8 +155,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   // Kondisi badge
                   Positioned(
-                    top: 12,
-                    right: 12,
+                    bottom: 12,
+                    left: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
@@ -168,8 +202,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                           Builder(
                             builder: (ctx) {
-                              final userId =
-                                  ctx.read<AuthProvider>().user?.id;
+                              final userId = ctx.read<AuthProvider>().user?.id;
                               if (userId == null ||
                                   product.seller.id != userId) {
                                 return const SizedBox.shrink();
@@ -560,12 +593,13 @@ class _BuySheetState extends State<_BuySheet> {
                     if (widget.product.firstImage.isNotEmpty)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(6),
-                        child: CachedNetworkImage(
-                          imageUrl:
-                              AppHelpers.getImageUrl(widget.product.firstImage),
+                        child: EduImage(
+                          path: widget.product.firstImage,
                           width: 50,
                           height: 50,
-                          fit: BoxFit.cover,
+                          placeholderIcon: Icons.storefront_outlined,
+                          placeholderColor: AppColors.marketLight,
+                          iconColor: AppColors.market,
                         ),
                       ),
                     const SizedBox(width: 10),

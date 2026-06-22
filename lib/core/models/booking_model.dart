@@ -50,9 +50,9 @@ class BookingModel {
       totalPrice: json['total_price'] != null
           ? double.tryParse(json['total_price'].toString())
           : null,
-      fullName: json['full_name'],
-      email: json['email'],
-      phone: json['phone'],
+      fullName: json['participant_name'] ?? json['full_name'],
+      email: json['participant_email'] ?? json['email'],
+      phone: json['participant_phone'] ?? json['phone'],
       bookable: json['bookable'] as Map<String, dynamic>?,
       transaction: json['transaction'] as Map<String, dynamic>?,
       createdAt: json['created_at'] != null

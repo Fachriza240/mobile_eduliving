@@ -12,6 +12,7 @@ class ResidenceProvider extends ChangeNotifier {
   String? _error;
   String _searchQuery = '';
   String _selectedCategory = '';
+  String? _selectedKosType; // NEW
   int _currentPage = 1;
   bool _hasMore = true;
 
@@ -30,6 +31,35 @@ class ResidenceProvider extends ChangeNotifier {
   bool get hasMore => _hasMore;
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
+  String? get selectedKosType => _selectedKosType;
+
+  // ── Setters ──────────────────────────────────────────
+  void setSearch(String q) {
+    if (_searchQuery == q) return;
+    _searchQuery = q;
+    loadResidences(refresh: true);
+  }
+
+  void setFilter({String? category, String? kosType}) {
+    bool changed = false;
+    if (category != null && _selectedCategory != category) {
+      _selectedCategory = category;
+      changed = true;
+    }
+    if (kosType != _selectedKosType) {
+      _selectedKosType = kosType;
+      changed = true;
+    }
+    if (changed) {
+      loadResidences(refresh: true);
+    }
+  }
+
+  void setCategory(String cat) {
+    if (_selectedCategory == cat) return;
+    _selectedCategory = cat;
+    loadResidences(refresh: true);
+  }
 
   // ── Load List ────────────────────────────────────────
   Future<void> loadResidences({bool refresh = false}) async {
@@ -58,6 +88,9 @@ class ResidenceProvider extends ChangeNotifier {
       }
       if (_selectedCategory.isNotEmpty) {
         params['residence_type'] = _selectedCategory;
+      }
+      if (_selectedKosType != null) {
+        params['kos_type'] = _selectedKosType;
       }
 
       final res = await _api.get(
@@ -102,21 +135,10 @@ class ResidenceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Search ───────────────────────────────────────────
-  void setSearch(String query) {
-    _searchQuery = query;
-    loadResidences(refresh: true);
-  }
-
-  // ── Filter Kategori ──────────────────────────────────
-  void setCategory(String category) {
-    _selectedCategory = category;
-    loadResidences(refresh: true);
-  }
-
   void clearFilter() {
     _searchQuery = '';
     _selectedCategory = '';
+    _selectedKosType = null;
     loadResidences(refresh: true);
   }
 

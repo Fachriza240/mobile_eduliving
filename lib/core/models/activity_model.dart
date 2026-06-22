@@ -23,6 +23,7 @@ class ActivityModel {
   final double? ratingAverage;
   final int? ratingCount;
   final bool? isBookmarked;
+  final List<dynamic> ratings;
 
   ActivityModel({
     required this.id,
@@ -49,6 +50,7 @@ class ActivityModel {
     this.ratingAverage,
     this.ratingCount,
     this.isBookmarked,
+    this.ratings = const [],
   });
 
   factory ActivityModel.fromJson(Map<String, dynamic> json) {
@@ -106,6 +108,7 @@ class ActivityModel {
           : null,
       ratingCount: json['rating_count'],
       isBookmarked: json['is_bookmarked'] as bool?,
+      ratings: json['ratings'] as List<dynamic>? ?? [],
     );
   }
 

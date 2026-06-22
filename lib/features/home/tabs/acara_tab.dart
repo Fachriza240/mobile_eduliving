@@ -6,11 +6,21 @@ import '../../activity/providers/activity_provider.dart';
 import '../../activity/screens/activity_detail_screen.dart';
 
 class AcaraTab extends StatefulWidget {
-  const AcaraTab({super.key});
+  final bool showBackButton;
+  const AcaraTab({super.key, this.showBackButton = false});
 
   @override
   State<AcaraTab> createState() => _AcaraTabState();
 }
+
+const _kCategories = [
+  {'id': '', 'label': 'Semua'},
+  {'id': 'seminar', 'label': 'Seminar'},
+  {'id': 'workshop', 'label': 'Workshop'},
+  {'id': 'kompetisi', 'label': 'Kompetisi'},
+  {'id': 'webinar', 'label': 'Webinar'},
+  {'id': 'pelatihan', 'label': 'Pelatihan'},
+];
 
 class _AcaraTabState extends State<AcaraTab>
     with SingleTickerProviderStateMixin {
@@ -18,14 +28,15 @@ class _AcaraTabState extends State<AcaraTab>
   final _scrollCtrl = ScrollController();
   late TabController _tabCtrl;
 
-  final _categories = const [
-    {'id': '', 'label': 'Semua'},
-    {'id': 'seminar', 'label': 'Seminar'},
-    {'id': 'workshop', 'label': 'Workshop'},
-    {'id': 'kompetisi', 'label': 'Kompetisi'},
-    {'id': 'webinar', 'label': 'Webinar'},
-    {'id': 'pelatihan', 'label': 'Pelatihan'},
-  ];
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => const _FilterSheet(),
+    );
+  }
 
   @override
   void initState() {
@@ -56,7 +67,13 @@ class _AcaraTabState extends State<AcaraTab>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: widget.showBackButton,
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 19),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         backgroundColor: AppColors.white,
         title: Row(
           children: [
@@ -82,15 +99,35 @@ class _AcaraTabState extends State<AcaraTab>
           preferredSize: const Size.fromHeight(108),
           child: Column(
             children: [
-              // Search bar
+              // Search bar & Filter
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                child: EduSearchBar(
-                  controller: _searchCtrl,
-                  hint: 'Cari acara, seminar...',
-                  onChanged: (q) =>
-                      context.read<ActivityProvider>().setSearch(q),
-                  onClear: () => context.read<ActivityProvider>().setSearch(''),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: EduSearchBar(
+                        controller: _searchCtrl,
+                        hint: 'Cari acara, seminar...',
+                        onChanged: (q) =>
+                            context.read<ActivityProvider>().setSearch(q),
+                        onClear: () => context.read<ActivityProvider>().setSearch(''),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _showFilterSheet,
+                      child: Container(
+                        height: 42,
+                        width: 42,
+                        decoration: BoxDecoration(
+                          color: AppColors.activity.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.tune,
+                            color: AppColors.activity, size: 20),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               // Tab bar HIJAU
@@ -115,7 +152,36 @@ class _AcaraTabState extends State<AcaraTab>
       ),
       body: Column(
         children: [
-          _buildCategoryFilter(),
+          // Active filter chip
+          Consumer<ActivityProvider>(
+            builder: (context, p, _) {
+              if (p.selectedCategory.isEmpty) return const SizedBox.shrink();
+              return Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                child: Row(
+                  children: [
+                    _ActiveFilterChip(
+                      label: p.selectedCategory.toUpperCase(),
+                      onRemove: () => p.setCategory(''),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => p.setCategory(''),
+                      child: const Text(
+                        'Reset filter',
+                        style: TextStyle(
+                          color: AppColors.activity,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           Expanded(
             child: TabBarView(
               controller: _tabCtrl,
@@ -126,27 +192,6 @@ class _AcaraTabState extends State<AcaraTab>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ── Filter Chip HIJAU ─────────────────────────────
-  Widget _buildCategoryFilter() {
-    return Consumer<ActivityProvider>(
-      builder: (_, prov, __) => Container(
-        height: 48,
-        color: AppColors.white,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          itemCount: _categories.length,
-          itemBuilder: (_, i) => FilterChipWidget(
-            label: _categories[i]['label']!,
-            isSelected: prov.selectedCategory == _categories[i]['id'],
-            onTap: () => prov.setCategory(_categories[i]['id']!),
-            selectedColor: AppColors.activity,
-          ),
-        ),
       ),
     );
   }
@@ -287,6 +332,7 @@ class _AcaraCard extends StatelessWidget {
                 ),
                 child: EduImage(
                   path: image,
+                  width: double.infinity,
                   height: 160,
                   borderRadius: 0,
                   placeholderIcon: Icons.event_outlined,
@@ -493,6 +539,134 @@ class _AcaraSkelCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// FILTER SHEET & CHIP
+// ─────────────────────────────────────────────────────
+class _FilterSheet extends StatelessWidget {
+  const _FilterSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Filter Acara',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Kategori',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Consumer<ActivityProvider>(
+            builder: (context, p, _) {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 10,
+                children: _kCategories.map((c) {
+                  final isSelected = p.selectedCategory == c['id'];
+                  return GestureDetector(
+                    onTap: () {
+                      p.setCategory(c['id']!);
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.activity
+                            : AppColors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.activity
+                              : AppColors.border,
+                        ),
+                      ),
+                      child: Text(
+                        c['label']!,
+                        style: TextStyle(
+                          color:
+                              isSelected ? Colors.white : AppColors.textPrimary,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActiveFilterChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onRemove;
+
+  const _ActiveFilterChip({required this.label, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.activity.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.activity,
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(Icons.close, size: 14, color: AppColors.activity),
           ),
         ],
       ),
