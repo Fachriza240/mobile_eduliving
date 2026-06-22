@@ -10,7 +10,7 @@ import '../../providers/provider_residence_provider.dart';
 import '../../models/provider_models.dart';
 
 class ProviderResidenceFormScreen extends StatefulWidget {
-  final ProviderResidenceModel? residence; // null = create, ada = edit
+  final ProviderResidenceModel? residence;
 
   const ProviderResidenceFormScreen({super.key, this.residence});
 
@@ -22,30 +22,32 @@ class ProviderResidenceFormScreen extends StatefulWidget {
 class _ProviderResidenceFormScreenState
     extends State<ProviderResidenceFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _picker = ImagePicker();
+  final _picker  = ImagePicker();
 
   // ── Controllers ───────────────────────────────────────
-  final _nameCtrl       = TextEditingController();
-  final _descCtrl       = TextEditingController();
-  final _addressCtrl    = TextEditingController();
-  final _priceCtrl      = TextEditingController();
-  final _capacityCtrl   = TextEditingController();
-  final _latCtrl        = TextEditingController();
-  final _lngCtrl        = TextEditingController();
-  final _discountValCtrl= TextEditingController();
+  final _nameCtrl        = TextEditingController();
+  final _descCtrl        = TextEditingController();
+  final _addressCtrl     = TextEditingController();
+  final _priceCtrl       = TextEditingController();
+  final _capacityCtrl    = TextEditingController();
+  final _availableCtrl   = TextEditingController(); // FIX #7: available_slots
+  final _latCtrl         = TextEditingController();
+  final _lngCtrl         = TextEditingController();
+  final _discountValCtrl = TextEditingController();
+  final _customFacilCtrl = TextEditingController(); // FIX #10: custom_facilities
 
   // Kos specific
-  final _roomSizeCtrl   = TextEditingController();
+  final _roomSizeCtrl  = TextEditingController();
 
   // Kontrakan/Rumah specific
-  final _bedroomCtrl    = TextEditingController();
-  final _bathroomCtrl   = TextEditingController();
-  final _buildingCtrl   = TextEditingController();
-  final _landCtrl       = TextEditingController();
+  final _bedroomCtrl   = TextEditingController();
+  final _bathroomCtrl  = TextEditingController();
+  final _buildingCtrl  = TextEditingController();
+  final _landCtrl      = TextEditingController();
 
   // Apartemen specific
-  final _floorCtrl      = TextEditingController();
-  final _towerCtrl      = TextEditingController();
+  final _floorCtrl     = TextEditingController();
+  final _towerCtrl     = TextEditingController();
 
   // ── State ─────────────────────────────────────────────
   String _residenceType = 'kos';
@@ -54,22 +56,25 @@ class _ProviderResidenceFormScreenState
   String _kosType       = 'putra';
   String _unitType      = 'studio';
   String _discountType  = '';
-  int? _categoryId;
+  bool   _isActive      = true; // FIX #8: is_active
+  int?   _categoryId;
 
-  final List<String> _facilities = [];
+  final List<String> _facilities    = [];
   final _facilityCtrl = TextEditingController();
 
-  List<XFile> _newImages = [];       // gambar baru dari galeri
-  List<String> _existingImages = []; // URL gambar yang sudah ada (edit mode)
+  List<XFile>  _newImages      = [];
+  List<String> _existingImages = [];
+  // FIX #9: track gambar yang dihapus saat edit
+  final List<int> _removedImageIndexes = [];
 
   bool get _isEdit => widget.residence != null;
 
   // ── Dropdown options ──────────────────────────────────
   final _typeOptions = const [
-    {'value': 'kos',           'label': 'Kos'},
-    {'value': 'kontrakan',     'label': 'Kontrakan'},
-    {'value': 'rumah_sewa',    'label': 'Rumah Sewa'},
-    {'value': 'apartemen',     'label': 'Apartemen'},
+    {'value': 'kos',        'label': 'Kos'},
+    {'value': 'kontrakan',  'label': 'Kontrakan'},
+    {'value': 'rumah_sewa', 'label': 'Rumah Sewa'},
+    {'value': 'apartemen',  'label': 'Apartemen'},
   ];
 
   final _furnishOptions = const [
@@ -78,8 +83,8 @@ class _ProviderResidenceFormScreenState
     {'value': 'full_furnished', 'label': 'Full Furnished'},
   ];
 
+  // FIX #2: hapus 'daily', backend hanya terima monthly/yearly
   final _rentalOptions = const [
-    {'value': 'daily',   'label': 'Harian'},
     {'value': 'monthly', 'label': 'Bulanan'},
     {'value': 'yearly',  'label': 'Tahunan'},
   ];
@@ -98,10 +103,11 @@ class _ProviderResidenceFormScreenState
     {'value': '4BR',    'label': '4 Bedroom'},
   ];
 
+  // FIX #1: 'fixed' → 'flat' sesuai validasi backend
   final _discountOptions = const [
     {'value': '',           'label': 'Tidak Ada Diskon'},
     {'value': 'percentage', 'label': 'Persentase (%)'},
-    {'value': 'fixed',      'label': 'Nominal (Rp)'},
+    {'value': 'flat',       'label': 'Nominal (Rp)'},
   ];
 
   @override
@@ -117,61 +123,67 @@ class _ProviderResidenceFormScreenState
     final r = widget.residence;
     if (r == null) return;
 
-    _nameCtrl.text       = r.name;
-    _descCtrl.text       = r.description;
-    _addressCtrl.text    = r.address;
-    _priceCtrl.text      = r.price.toInt().toString();
-    _capacityCtrl.text   = r.capacity.toString();
-    _latCtrl.text        = (r.latitude ?? '').toString();
-    _lngCtrl.text        = (r.longitude ?? '').toString();
-    _residenceType       = r.residenceType;
-    _furnishStatus       = r.furnishStatus ?? 'unfurnished';
-    _rentalPeriod        = r.rentalPeriod;
-    _categoryId          = r.categoryId;
-    _existingImages      = List.from(r.images);
+    _nameCtrl.text     = r.name;
+    _descCtrl.text     = r.description;
+    _addressCtrl.text  = r.address;
+    _priceCtrl.text    = r.price.toInt().toString();
+    _capacityCtrl.text = r.capacity.toString();
+    // FIX #7: prefill available_slots
+    _availableCtrl.text = r.availableSlots.toString();
+    _latCtrl.text      = (r.latitude ?? '').toString();
+    _lngCtrl.text      = (r.longitude ?? '').toString();
+    _residenceType     = r.residenceType;
+    _furnishStatus     = r.furnishStatus ?? 'unfurnished';
+    _rentalPeriod      = r.rentalPeriod;
+    _categoryId        = r.categoryId;
+    _existingImages    = List.from(r.images);
     _facilities.addAll(r.facilities);
-    _discountType        = r.discountType ?? '';
+    _discountType      = r.discountType ?? '';
+    // FIX #8: prefill is_active
+    _isActive          = r.isActive;
     if (r.discountValue != null && r.discountValue! > 0) {
       _discountValCtrl.text = r.discountValue!.toInt().toString();
     }
 
-    // Type specific
-    _kosType     = r.kosType ?? 'putra';
-    _unitType    = r.unitType ?? 'studio';
-    if (r.roomSize    != null) _roomSizeCtrl.text  = r.roomSize!.toInt().toString();
-    if (r.bedroomCount!= null) _bedroomCtrl.text   = r.bedroomCount.toString();
-    if (r.bathroomCount!= null)_bathroomCtrl.text  = r.bathroomCount.toString();
-    if (r.buildingSize!= null) _buildingCtrl.text  = r.buildingSize!.toInt().toString();
-    if (r.landSize    != null) _landCtrl.text       = r.landSize!.toInt().toString();
-    if (r.floorNumber != null) _floorCtrl.text      = r.floorNumber.toString();
-    if (r.towerName   != null) _towerCtrl.text      = r.towerName!;
+    _kosType  = r.kosType ?? 'putra';
+    _unitType = r.unitType ?? 'studio';
+    if (r.roomSize     != null) _roomSizeCtrl.text  = r.roomSize!.toInt().toString();
+    if (r.bedroomCount != null) _bedroomCtrl.text   = r.bedroomCount.toString();
+    if (r.bathroomCount!= null) _bathroomCtrl.text  = r.bathroomCount.toString();
+    if (r.buildingSize != null) _buildingCtrl.text  = r.buildingSize!.toInt().toString();
+    if (r.landSize     != null) _landCtrl.text      = r.landSize!.toInt().toString();
+    if (r.floorNumber  != null) _floorCtrl.text     = r.floorNumber.toString();
+    if (r.towerName    != null) _towerCtrl.text     = r.towerName!;
   }
 
   @override
   void dispose() {
     for (final c in [
       _nameCtrl, _descCtrl, _addressCtrl, _priceCtrl, _capacityCtrl,
-      _latCtrl, _lngCtrl, _discountValCtrl, _roomSizeCtrl, _bedroomCtrl,
-      _bathroomCtrl, _buildingCtrl, _landCtrl, _floorCtrl, _towerCtrl,
-      _facilityCtrl,
-    ]) {
-      c.dispose();
-    }
+      _availableCtrl, _latCtrl, _lngCtrl, _discountValCtrl, _customFacilCtrl,
+      _roomSizeCtrl, _bedroomCtrl, _bathroomCtrl, _buildingCtrl, _landCtrl,
+      _floorCtrl, _towerCtrl, _facilityCtrl,
+    ]) { c.dispose(); }
     super.dispose();
   }
 
   // ── Pick Images ───────────────────────────────────────
   Future<void> _pickImages() async {
     final total = _existingImages.length + _newImages.length;
-    if (total >= 10) {
-      _snack('Maksimal 10 foto.', isError: true);
-      return;
-    }
+    if (total >= 10) { _snack('Maksimal 10 foto.', isError: true); return; }
     final picked = await _picker.pickMultiImage(imageQuality: 80);
     if (picked.isEmpty) return;
-    final allowed = 10 - total;
+    setState(() => _newImages.addAll(picked.take(10 - total)));
+  }
+
+  // FIX #9: hapus gambar existing — track index yang dihapus
+  void _removeExistingImage(int originalIndex) {
     setState(() {
-      _newImages.addAll(picked.take(allowed));
+      _removedImageIndexes.add(originalIndex);
+      _existingImages.removeAt(
+        _existingImages.length - (originalIndex + 1 - _removedImageIndexes
+            .where((i) => i < originalIndex).length),
+      );
     });
   }
 
@@ -186,44 +198,66 @@ class _ProviderResidenceFormScreenState
       MapEntry('residence_type',  _residenceType),
       MapEntry('furnish_status',  _furnishStatus),
       MapEntry('rental_period',   _rentalPeriod),
+      // FIX #8: kirim is_active
+      MapEntry('is_active',       _isActive ? '1' : '0'),
       if (_categoryId != null) MapEntry('category_id', _categoryId.toString()),
-      if (_latCtrl.text.isNotEmpty) MapEntry('latitude', _latCtrl.text.trim()),
+      if (_latCtrl.text.isNotEmpty) MapEntry('latitude',  _latCtrl.text.trim()),
       if (_lngCtrl.text.isNotEmpty) MapEntry('longitude', _lngCtrl.text.trim()),
       if (_discountType.isNotEmpty) MapEntry('discount_type', _discountType),
       if (_discountType.isNotEmpty && _discountValCtrl.text.isNotEmpty)
         MapEntry('discount_value', _discountValCtrl.text.trim()),
     ];
 
+    // FIX #7: kirim available_slots saat edit
+    if (_isEdit && _availableCtrl.text.isNotEmpty) {
+      fields.add(MapEntry('available_slots', _availableCtrl.text.trim()));
+    }
+
+    // FIX #9: kirim index gambar yang dihapus
+    if (_isEdit && _removedImageIndexes.isNotEmpty) {
+      for (int i = 0; i < _removedImageIndexes.length; i++) {
+        fields.add(MapEntry('removed_images[$i]', _removedImageIndexes[i].toString()));
+      }
+    }
+
     // Facilities
     for (int i = 0; i < _facilities.length; i++) {
       fields.add(MapEntry('facilities[$i]', _facilities[i]));
     }
 
+    // FIX #10: kirim custom_facilities jika ada
+    if (_customFacilCtrl.text.trim().isNotEmpty) {
+      fields.add(MapEntry('custom_facilities', _customFacilCtrl.text.trim()));
+    }
+
     // Type-specific
     if (_residenceType == 'kos') {
       fields.add(MapEntry('kos_type', _kosType));
-      if (_roomSizeCtrl.text.isNotEmpty) {
+      if (_roomSizeCtrl.text.isNotEmpty)
         fields.add(MapEntry('room_size', _roomSizeCtrl.text.trim()));
-      }
     } else if (_residenceType == 'kontrakan' || _residenceType == 'rumah_sewa') {
-      if (_bedroomCtrl.text.isNotEmpty)  fields.add(MapEntry('bedroom_count',  _bedroomCtrl.text.trim()));
-      if (_bathroomCtrl.text.isNotEmpty) fields.add(MapEntry('bathroom_count', _bathroomCtrl.text.trim()));
-      if (_buildingCtrl.text.isNotEmpty) fields.add(MapEntry('building_size',  _buildingCtrl.text.trim()));
-      if (_landCtrl.text.isNotEmpty)     fields.add(MapEntry('land_size',       _landCtrl.text.trim()));
+      // FIX #5: wajib ada, tapi validator sudah di form — tetap kirim
+      fields.add(MapEntry('bedroom_count',  _bedroomCtrl.text.trim()));
+      fields.add(MapEntry('bathroom_count', _bathroomCtrl.text.trim()));
+      if (_buildingCtrl.text.isNotEmpty) fields.add(MapEntry('building_size', _buildingCtrl.text.trim()));
+      if (_landCtrl.text.isNotEmpty)     fields.add(MapEntry('land_size',     _landCtrl.text.trim()));
     } else if (_residenceType == 'apartemen') {
       fields.add(MapEntry('unit_type', _unitType));
-      if (_floorCtrl.text.isNotEmpty) fields.add(MapEntry('floor_number', _floorCtrl.text.trim()));
-      if (_towerCtrl.text.isNotEmpty) fields.add(MapEntry('tower_name',   _towerCtrl.text.trim()));
+      // FIX #6: wajib ada
+      fields.add(MapEntry('floor_number', _floorCtrl.text.trim()));
+      if (_towerCtrl.text.isNotEmpty)    fields.add(MapEntry('tower_name',    _towerCtrl.text.trim()));
+      // FIX #3: tambah bedroom, bathroom, room_size untuk apartemen
+      if (_bedroomCtrl.text.isNotEmpty)  fields.add(MapEntry('bedroom_count',  _bedroomCtrl.text.trim()));
+      if (_bathroomCtrl.text.isNotEmpty) fields.add(MapEntry('bathroom_count', _bathroomCtrl.text.trim()));
+      if (_roomSizeCtrl.text.isNotEmpty) fields.add(MapEntry('room_size',      _roomSizeCtrl.text.trim()));
     }
 
     // New images
     final imageFiles = <MapEntry<String, MultipartFile>>[];
     for (int i = 0; i < _newImages.length; i++) {
-      final file = File(_newImages[i].path);
       imageFiles.add(MapEntry(
         'images[$i]',
-        await MultipartFile.fromFile(file.path,
-            filename: 'image_$i.jpg'),
+        await MultipartFile.fromFile(_newImages[i].path, filename: 'image_$i.jpg'),
       ));
     }
 
@@ -240,7 +274,7 @@ class _ProviderResidenceFormScreenState
       return;
     }
 
-    final prov = context.read<ProviderResidenceProvider>();
+    final prov     = context.read<ProviderResidenceProvider>();
     final formData = await _buildFormData();
     bool ok;
 
@@ -283,18 +317,10 @@ class _ProviderResidenceFormScreenState
             builder: (_, prov, __) => TextButton(
               onPressed: prov.isSaving ? null : _submit,
               child: prov.isSaving
-                  ? const SizedBox(
-                      width: 18, height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                    )
-                  : const Text(
-                      'Simpan',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      ),
-                    ),
+                  ? const SizedBox(width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                  : const Text('Simpan',
+                      style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, color: AppColors.primary)),
             ),
           ),
         ],
@@ -399,6 +425,24 @@ class _ProviderResidenceFormScreenState
                         ),
                       ],
                     ),
+                    // FIX #7: field available_slots hanya tampil saat edit
+                    if (_isEdit) ...[
+                      const SizedBox(height: 14),
+                      _field(
+                        ctrl: _availableCtrl,
+                        label: 'Slot Tersedia',
+                        hint: '5',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Slot tersedia wajib diisi';
+                          final cap = int.tryParse(_capacityCtrl.text.trim()) ?? 0;
+                          final avail = int.tryParse(v.trim()) ?? 0;
+                          if (avail > cap) return 'Tidak boleh melebihi kapasitas ($cap)';
+                          return null;
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     _buildDropdown(
                       label: 'Periode Sewa',
@@ -412,6 +456,22 @@ class _ProviderResidenceFormScreenState
                       value: _furnishStatus,
                       options: _furnishOptions,
                       onChanged: (v) => setState(() => _furnishStatus = v!),
+                    ),
+                    // FIX #8: toggle is_active
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      value: _isActive,
+                      onChanged: (v) => setState(() => _isActive = v),
+                      title: const Text(
+                        'Aktifkan Listing',
+                        style: TextStyle(fontFamily: 'Poppins', fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                      subtitle: Text(
+                        _isActive ? 'Hunian terlihat oleh pengguna' : 'Hunian disembunyikan sementara',
+                        style: const TextStyle(fontFamily: 'Poppins', fontSize: 11),
+                      ),
+                      activeColor: AppColors.residence,
+                      contentPadding: EdgeInsets.zero,
                     ),
                   ],
                 ),
@@ -461,13 +521,12 @@ class _ProviderResidenceFormScreenState
               _buildCard(
                 child: Column(
                   children: [
-                    _field(ctrl: _latCtrl, label: 'Latitude', hint: '-6.914744'),
+                    _field(ctrl: _latCtrl, label: 'Latitude',  hint: '-6.914744'),
                     const SizedBox(height: 14),
                     _field(ctrl: _lngCtrl, label: 'Longitude', hint: '107.609810'),
                   ],
                 ),
               ),
-
               const SizedBox(height: 32),
 
               // ── Submit Button ─────────────────────────
@@ -480,17 +539,11 @@ class _ProviderResidenceFormScreenState
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: prov.isSaving
-                      ? const SizedBox(
-                          width: 22, height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
+                      ? const SizedBox(width: 22, height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : Text(
                           _isEdit ? 'Perbarui Hunian' : 'Tambah Hunian',
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
+                          style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 15),
                         ),
                 ),
               ),
@@ -504,64 +557,83 @@ class _ProviderResidenceFormScreenState
 
   // ── Photo Section ─────────────────────────────────────
   Widget _buildPhotoSection() {
-    final allImages = [
-      ..._existingImages.map((url) => _PhotoItem(url: url)),
-      ..._newImages.map((x) => _PhotoItem(path: x.path)),
-    ];
-
+    // FIX #9: pisahkan existing dan new, tampilkan dengan tombol hapus yang track index asli
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (allImages.isNotEmpty)
+          if (_existingImages.isNotEmpty || _newImages.isNotEmpty)
             SizedBox(
               height: 100,
-              child: ListView.separated(
+              child: ListView(
                 scrollDirection: Axis.horizontal,
-                itemCount: allImages.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  final item = allImages[i];
-                  return Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: item.url != null
-                            ? EduImage(
-                                path: item.url,
-                                width: 100, height: 100, fit: BoxFit.cover,
-                                borderRadius: 10,
-                              )
-                            : Image.file(
-                                File(item.path!),
-                                width: 100, height: 100, fit: BoxFit.cover,
-                              ),
-                      ),
-                      Positioned(
-                        top: 4, right: 4,
-                        child: GestureDetector(
-                          onTap: () => setState(() {
-                            if (item.url != null) {
-                              _existingImages.remove(item.url);
-                            } else {
-                              _newImages.removeWhere((x) => x.path == item.path);
-                            }
-                          }),
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(
-                              color: AppColors.error, shape: BoxShape.circle,
+                children: [
+                  // Gambar lama (existing)
+                  ..._existingImages.asMap().entries.map((entry) {
+                    final displayIndex = entry.key;
+                    // Hitung index asli di array server (sebelum ada yang dihapus)
+                    int serverIndex = displayIndex;
+                    for (final removed in _removedImageIndexes) {
+                      if (removed <= serverIndex) serverIndex++;
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: EduImage(
+                              path: entry.value,
+                              width: 100, height: 100, fit: BoxFit.cover, borderRadius: 10,
                             ),
-                            child: const Icon(Icons.close, color: Colors.white, size: 12),
+                          ),
+                          Positioned(
+                            top: 4, right: 4,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _removedImageIndexes.add(serverIndex);
+                                  _existingImages.removeAt(displayIndex);
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
+                                child: const Icon(Icons.close, color: Colors.white, size: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  // Gambar baru
+                  ..._newImages.asMap().entries.map((entry) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(File(entry.value.path), width: 100, height: 100, fit: BoxFit.cover),
+                        ),
+                        Positioned(
+                          top: 4, right: 4,
+                          child: GestureDetector(
+                            onTap: () => setState(() => _newImages.removeAt(entry.key)),
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
+                              child: const Icon(Icons.close, color: Colors.white, size: 12),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                },
+                      ],
+                    ),
+                  )),
+                ],
               ),
             ),
-          if (allImages.isNotEmpty) const SizedBox(height: 10),
+          if (_existingImages.isNotEmpty || _newImages.isNotEmpty) const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: _pickImages,
             style: OutlinedButton.styleFrom(
@@ -571,7 +643,7 @@ class _ProviderResidenceFormScreenState
             ),
             icon: const Icon(Icons.add_photo_alternate_outlined),
             label: Text(
-              '${allImages.isEmpty ? 'Tambah' : 'Tambah Lagi'} Foto (${allImages.length}/10)',
+              '${(_existingImages.isEmpty && _newImages.isEmpty) ? 'Tambah' : 'Tambah Lagi'} Foto (${_existingImages.length + _newImages.length}/10)',
             ),
           ),
         ],
@@ -602,9 +674,7 @@ class _ProviderResidenceFormScreenState
               child: Text(
                 opt['label']!,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Poppins', fontSize: 13, fontWeight: FontWeight.w600,
                   color: isSelected ? Colors.white : AppColors.textSecondary,
                 ),
               ),
@@ -659,11 +729,29 @@ class _ProviderResidenceFormScreenState
               children: [
                 Row(
                   children: [
-                    Expanded(child: _field(ctrl: _bedroomCtrl,  label: 'Kamar Tidur', hint: '3',
-                      keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
+                    Expanded(
+                      child: _field(
+                        ctrl: _bedroomCtrl,
+                        label: 'Kamar Tidur',
+                        hint: '3',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        // FIX #5: tambah validator wajib
+                        validator: (v) => (v?.trim().isEmpty ?? true) ? 'Kamar tidur wajib diisi' : null,
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(child: _field(ctrl: _bathroomCtrl, label: 'Kamar Mandi', hint: '2',
-                      keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
+                    Expanded(
+                      child: _field(
+                        ctrl: _bathroomCtrl,
+                        label: 'Kamar Mandi',
+                        hint: '2',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        // FIX #5: tambah validator wajib
+                        validator: (v) => (v?.trim().isEmpty ?? true) ? 'Kamar mandi wajib diisi' : null,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -672,7 +760,7 @@ class _ProviderResidenceFormScreenState
                     Expanded(child: _field(ctrl: _buildingCtrl, label: 'Luas Bangunan (m²)', hint: '80',
                       keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
                     const SizedBox(width: 12),
-                    Expanded(child: _field(ctrl: _landCtrl,     label: 'Luas Tanah (m²)',    hint: '120',
+                    Expanded(child: _field(ctrl: _landCtrl, label: 'Luas Tanah (m²)', hint: '120',
                       keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
                   ],
                 ),
@@ -701,11 +789,39 @@ class _ProviderResidenceFormScreenState
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Expanded(child: _field(ctrl: _floorCtrl, label: 'Lantai', hint: '5',
-                      keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
+                    Expanded(
+                      child: _field(
+                        ctrl: _floorCtrl,
+                        label: 'Lantai',
+                        hint: '5',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        // FIX #6: tambah validator wajib
+                        validator: (v) => (v?.trim().isEmpty ?? true) ? 'Lantai wajib diisi' : null,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(child: _field(ctrl: _towerCtrl, label: 'Nama Tower', hint: 'Tower A')),
                   ],
+                ),
+                // FIX #3 & #4: tambah bedroom, bathroom, room_size untuk apartemen
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(child: _field(ctrl: _bedroomCtrl, label: 'Kamar Tidur', hint: '2',
+                      keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
+                    const SizedBox(width: 12),
+                    Expanded(child: _field(ctrl: _bathroomCtrl, label: 'Kamar Mandi', hint: '1',
+                      keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _field(
+                  ctrl: _roomSizeCtrl,
+                  label: 'Luas Unit (m²)',
+                  hint: '36',
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
               ],
             ),
@@ -723,6 +839,7 @@ class _ProviderResidenceFormScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Input fasilitas chip
           Row(
             children: [
               Expanded(
@@ -730,18 +847,14 @@ class _ProviderResidenceFormScreenState
                   controller: _facilityCtrl,
                   style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
                   decoration: InputDecoration(
-                    hintText: 'Cth: WiFi, AC, Parkir, Dapur...',
+                    hintText: 'Cth: WiFi, AC, Parkir...',
                     hintStyle: const TextStyle(fontFamily: 'Poppins', fontSize: 13, color: AppColors.textHint),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.residence, width: 2),
-                    ),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.border)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.residence, width: 2)),
                   ),
                   onFieldSubmitted: (_) => _addFacility(),
                 ),
@@ -772,6 +885,13 @@ class _ProviderResidenceFormScreenState
               )).toList(),
             ),
           ],
+          // FIX #10: custom_facilities — fasilitas bebas ketik dipisah koma
+          const SizedBox(height: 14),
+          _field(
+            ctrl: _customFacilCtrl,
+            label: 'Fasilitas Tambahan (pisah koma)',
+            hint: 'Cth: Dapur bersama, Jemuran, Ruang tamu',
+          ),
         ],
       ),
     );
@@ -780,10 +900,7 @@ class _ProviderResidenceFormScreenState
   void _addFacility() {
     final v = _facilityCtrl.text.trim();
     if (v.isEmpty || _facilities.contains(v)) return;
-    setState(() {
-      _facilities.add(v);
-      _facilityCtrl.clear();
-    });
+    setState(() { _facilities.add(v); _facilityCtrl.clear(); });
   }
 
   // ── Helpers ───────────────────────────────────────────
@@ -791,15 +908,10 @@ class _ProviderResidenceFormScreenState
     children: [
       Icon(icon, color: AppColors.residence, size: 18),
       const SizedBox(width: 8),
-      Text(
-        title,
-        style: const TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-        ),
-      ),
+      Text(title, style: const TextStyle(
+        fontFamily: 'Poppins', fontSize: 14,
+        fontWeight: FontWeight.w700, color: AppColors.textPrimary,
+      )),
     ],
   );
 
@@ -830,9 +942,7 @@ class _ProviderResidenceFormScreenState
       validator: validator,
       style: const TextStyle(fontFamily: 'Poppins', fontSize: 13, color: AppColors.textPrimary),
       decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        alignLabelWithHint: maxLines > 1,
+        labelText: label, hintText: hint, alignLabelWithHint: maxLines > 1,
       ),
     );
   }
@@ -854,10 +964,4 @@ class _ProviderResidenceFormScreenState
       onChanged: onChanged,
     );
   }
-}
-
-class _PhotoItem {
-  final String? url;
-  final String? path;
-  _PhotoItem({this.url, this.path});
 }

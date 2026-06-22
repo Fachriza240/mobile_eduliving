@@ -64,8 +64,9 @@ class ProviderBookingProvider extends ChangeNotifier {
       if (_selectedStatus.isNotEmpty) params['status'] = _selectedStatus;
 
       final res = await _api.get(endpoint, queryParameters: params);
-      final data = res['data'] as List? ?? res['items'] as List? ?? [];
-      final meta = res['meta'] as Map<String, dynamic>?;
+      final rawData = res['data'];
+      final data = rawData is List ? rawData : <dynamic>[];
+      final meta = res['meta'] is Map ? res['meta'] as Map<String, dynamic> : null;
 
       final newItems = data
           .whereType<Map<String, dynamic>>()
