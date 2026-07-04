@@ -16,6 +16,8 @@ class ProviderBookingListScreen extends StatefulWidget {
 
 class _ProviderBookingListScreenState extends State<ProviderBookingListScreen> {
   final _scrollCtrl = ScrollController();
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
 
   final _statusFilters = const [
     {'id': '', 'label': 'Semua'},
@@ -33,6 +35,7 @@ class _ProviderBookingListScreenState extends State<ProviderBookingListScreen> {
       context.read<ProviderBookingProvider>().loadBookings(
         refresh: true,
         isResidence: widget.isResidence,
+        search: _searchQuery,
       );
     });
 
@@ -41,6 +44,7 @@ class _ProviderBookingListScreenState extends State<ProviderBookingListScreen> {
           _scrollCtrl.position.maxScrollExtent - 200) {
         context.read<ProviderBookingProvider>().loadBookings(
           isResidence: widget.isResidence,
+          search: _searchQuery,
         );
       }
     });
@@ -49,6 +53,7 @@ class _ProviderBookingListScreenState extends State<ProviderBookingListScreen> {
   @override
   void dispose() {
     _scrollCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -87,6 +92,7 @@ class _ProviderBookingListScreenState extends State<ProviderBookingListScreen> {
       body: Column(
         children: [
           _buildStatusFilter(color),
+          _buildSearchBar(color),
           Expanded(child: _buildContent(color)),
         ],
       ),
@@ -112,6 +118,52 @@ class _ProviderBookingListScreenState extends State<ProviderBookingListScreen> {
       ),
     );
   }
+  Widget _buildSearchBar(Color color) {
+  return Container(
+    color: AppColors.white,
+    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+    child: TextField(
+      controller: _searchCtrl,
+      style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+      decoration: InputDecoration(
+        hintText: 'Cari kode booking atau nama user...',
+        hintStyle: const TextStyle(fontFamily: 'Poppins', fontSize: 13, color: AppColors.textHint),
+        prefixIcon: Icon(Icons.search_rounded, color: color, size: 20),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.close_rounded, size: 18),
+                onPressed: () {
+                  _searchCtrl.clear();
+                  setState(() => _searchQuery = '');
+                  context.read<ProviderBookingProvider>().loadBookings(
+                    refresh: true,
+                    isResidence: widget.isResidence,
+                  );
+                },
+              )
+            : null,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: color, width: 2),
+        ),
+      ),
+      onChanged: (v) {
+        setState(() => _searchQuery = v);
+        context.read<ProviderBookingProvider>().loadBookings(
+          refresh: true,
+          isResidence: widget.isResidence,
+          search: v.trim(),
+        );
+      },
+    ),
+  );
+}
 
   Widget _buildContent(Color color) {
     return Consumer<ProviderBookingProvider>(
@@ -130,6 +182,7 @@ class _ProviderBookingListScreenState extends State<ProviderBookingListScreen> {
             onRetry: () => prov.loadBookings(
               refresh: true,
               isResidence: widget.isResidence,
+              search: _searchQuery,
             ),
           );
         }
@@ -146,6 +199,7 @@ class _ProviderBookingListScreenState extends State<ProviderBookingListScreen> {
           onRefresh: () => prov.loadBookings(
             refresh: true,
             isResidence: widget.isResidence,
+            search: _searchQuery, 
           ),
           color: color,
           child: ListView.builder(

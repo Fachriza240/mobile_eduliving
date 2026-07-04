@@ -29,12 +29,10 @@ class _ProviderResidenceFormScreenState
   final _descCtrl        = TextEditingController();
   final _addressCtrl     = TextEditingController();
   final _priceCtrl       = TextEditingController();
-  final _capacityCtrl    = TextEditingController();
-  final _availableCtrl   = TextEditingController(); // FIX #7: available_slots
+  final _capacityCtrl    = TextEditingController(); // FIX #7: available_slots
   final _latCtrl         = TextEditingController();
   final _lngCtrl         = TextEditingController();
-  final _discountValCtrl = TextEditingController();
-  final _customFacilCtrl = TextEditingController(); // FIX #10: custom_facilities
+  final _discountValCtrl = TextEditingController(); // FIX #10: custom_facilities
 
   // Kos specific
   final _roomSizeCtrl  = TextEditingController();
@@ -56,7 +54,6 @@ class _ProviderResidenceFormScreenState
   String _kosType       = 'putra';
   String _unitType      = 'studio';
   String _discountType  = '';
-  bool   _isActive      = true; // FIX #8: is_active
   int?   _categoryId;
 
   final List<String> _facilities    = [];
@@ -65,7 +62,6 @@ class _ProviderResidenceFormScreenState
   List<XFile>  _newImages      = [];
   List<String> _existingImages = [];
   // FIX #9: track gambar yang dihapus saat edit
-  final List<int> _removedImageIndexes = [];
 
   bool get _isEdit => widget.residence != null;
 
@@ -107,7 +103,7 @@ class _ProviderResidenceFormScreenState
   final _discountOptions = const [
     {'value': '',           'label': 'Tidak Ada Diskon'},
     {'value': 'percentage', 'label': 'Persentase (%)'},
-    {'value': 'flat',       'label': 'Nominal (Rp)'},
+    {'value': 'fixed',       'label': 'Nominal (Rp)'},
   ];
 
   @override
@@ -129,7 +125,6 @@ class _ProviderResidenceFormScreenState
     _priceCtrl.text    = r.price.toInt().toString();
     _capacityCtrl.text = r.capacity.toString();
     // FIX #7: prefill available_slots
-    _availableCtrl.text = r.availableSlots.toString();
     _latCtrl.text      = (r.latitude ?? '').toString();
     _lngCtrl.text      = (r.longitude ?? '').toString();
     _residenceType     = r.residenceType;
@@ -140,7 +135,6 @@ class _ProviderResidenceFormScreenState
     _facilities.addAll(r.facilities);
     _discountType      = r.discountType ?? '';
     // FIX #8: prefill is_active
-    _isActive          = r.isActive;
     if (r.discountValue != null && r.discountValue! > 0) {
       _discountValCtrl.text = r.discountValue!.toInt().toString();
     }
@@ -160,7 +154,7 @@ class _ProviderResidenceFormScreenState
   void dispose() {
     for (final c in [
       _nameCtrl, _descCtrl, _addressCtrl, _priceCtrl, _capacityCtrl,
-      _availableCtrl, _latCtrl, _lngCtrl, _discountValCtrl, _customFacilCtrl,
+      _latCtrl, _lngCtrl, _discountValCtrl,
       _roomSizeCtrl, _bedroomCtrl, _bathroomCtrl, _buildingCtrl, _landCtrl,
       _floorCtrl, _towerCtrl, _facilityCtrl,
     ]) { c.dispose(); }
@@ -175,18 +169,6 @@ class _ProviderResidenceFormScreenState
     if (picked.isEmpty) return;
     setState(() => _newImages.addAll(picked.take(10 - total)));
   }
-
-  // FIX #9: hapus gambar existing — track index yang dihapus
-  void _removeExistingImage(int originalIndex) {
-    setState(() {
-      _removedImageIndexes.add(originalIndex);
-      _existingImages.removeAt(
-        _existingImages.length - (originalIndex + 1 - _removedImageIndexes
-            .where((i) => i < originalIndex).length),
-      );
-    });
-  }
-
   // ── Build FormData ────────────────────────────────────
   Future<FormData> _buildFormData() async {
     final fields = <MapEntry<String, dynamic>>[
@@ -198,8 +180,6 @@ class _ProviderResidenceFormScreenState
       MapEntry('residence_type',  _residenceType),
       MapEntry('furnish_status',  _furnishStatus),
       MapEntry('rental_period',   _rentalPeriod),
-      // FIX #8: kirim is_active
-      MapEntry('is_active',       _isActive ? '1' : '0'),
       if (_categoryId != null) MapEntry('category_id', _categoryId.toString()),
       if (_latCtrl.text.isNotEmpty) MapEntry('latitude',  _latCtrl.text.trim()),
       if (_lngCtrl.text.isNotEmpty) MapEntry('longitude', _lngCtrl.text.trim()),
@@ -208,27 +188,11 @@ class _ProviderResidenceFormScreenState
         MapEntry('discount_value', _discountValCtrl.text.trim()),
     ];
 
-    // FIX #7: kirim available_slots saat edit
-    if (_isEdit && _availableCtrl.text.isNotEmpty) {
-      fields.add(MapEntry('available_slots', _availableCtrl.text.trim()));
-    }
-
-    // FIX #9: kirim index gambar yang dihapus
-    if (_isEdit && _removedImageIndexes.isNotEmpty) {
-      for (int i = 0; i < _removedImageIndexes.length; i++) {
-        fields.add(MapEntry('removed_images[$i]', _removedImageIndexes[i].toString()));
-      }
-    }
-
     // Facilities
     for (int i = 0; i < _facilities.length; i++) {
       fields.add(MapEntry('facilities[$i]', _facilities[i]));
     }
 
-    // FIX #10: kirim custom_facilities jika ada
-    if (_customFacilCtrl.text.trim().isNotEmpty) {
-      fields.add(MapEntry('custom_facilities', _customFacilCtrl.text.trim()));
-    }
 
     // Type-specific
     if (_residenceType == 'kos') {
@@ -425,24 +389,6 @@ class _ProviderResidenceFormScreenState
                         ),
                       ],
                     ),
-                    // FIX #7: field available_slots hanya tampil saat edit
-                    if (_isEdit) ...[
-                      const SizedBox(height: 14),
-                      _field(
-                        ctrl: _availableCtrl,
-                        label: 'Slot Tersedia',
-                        hint: '5',
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'Slot tersedia wajib diisi';
-                          final cap = int.tryParse(_capacityCtrl.text.trim()) ?? 0;
-                          final avail = int.tryParse(v.trim()) ?? 0;
-                          if (avail > cap) return 'Tidak boleh melebihi kapasitas ($cap)';
-                          return null;
-                        },
-                      ),
-                    ],
                     const SizedBox(height: 14),
                     _buildDropdown(
                       label: 'Periode Sewa',
@@ -456,22 +402,6 @@ class _ProviderResidenceFormScreenState
                       value: _furnishStatus,
                       options: _furnishOptions,
                       onChanged: (v) => setState(() => _furnishStatus = v!),
-                    ),
-                    // FIX #8: toggle is_active
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      value: _isActive,
-                      onChanged: (v) => setState(() => _isActive = v),
-                      title: const Text(
-                        'Aktifkan Listing',
-                        style: TextStyle(fontFamily: 'Poppins', fontSize: 13, fontWeight: FontWeight.w500),
-                      ),
-                      subtitle: Text(
-                        _isActive ? 'Hunian terlihat oleh pengguna' : 'Hunian disembunyikan sementara',
-                        style: const TextStyle(fontFamily: 'Poppins', fontSize: 11),
-                      ),
-                      activeColor: AppColors.residence,
-                      contentPadding: EdgeInsets.zero,
                     ),
                   ],
                 ),
@@ -571,11 +501,6 @@ class _ProviderResidenceFormScreenState
                   // Gambar lama (existing)
                   ..._existingImages.asMap().entries.map((entry) {
                     final displayIndex = entry.key;
-                    // Hitung index asli di array server (sebelum ada yang dihapus)
-                    int serverIndex = displayIndex;
-                    for (final removed in _removedImageIndexes) {
-                      if (removed <= serverIndex) serverIndex++;
-                    }
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: Stack(
@@ -592,8 +517,7 @@ class _ProviderResidenceFormScreenState
                             child: GestureDetector(
                               onTap: () {
                                 setState(() {
-                                  _removedImageIndexes.add(serverIndex);
-                                  _existingImages.removeAt(displayIndex);
+                                  _existingImages.removeAt(entry.key);
                                 });
                               },
                               child: Container(
@@ -885,13 +809,6 @@ class _ProviderResidenceFormScreenState
               )).toList(),
             ),
           ],
-          // FIX #10: custom_facilities — fasilitas bebas ketik dipisah koma
-          const SizedBox(height: 14),
-          _field(
-            ctrl: _customFacilCtrl,
-            label: 'Fasilitas Tambahan (pisah koma)',
-            hint: 'Cth: Dapur bersama, Jemuran, Ruang tamu',
-          ),
         ],
       ),
     );

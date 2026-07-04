@@ -14,6 +14,14 @@ class ProviderResidenceListScreen extends StatefulWidget {
 }
 
 class _ProviderResidenceListScreenState extends State<ProviderResidenceListScreen> {
+  String? _filterType;
+    final _typeFilters = const [
+      {'value': null,         'label': 'Semua'},
+      {'value': 'kos',        'label': 'Kos'},
+      {'value': 'kontrakan',  'label': 'Kontrakan'},
+      {'value': 'rumah_sewa', 'label': 'Rumah Sewa'},
+      {'value': 'apartemen',  'label': 'Apartemen'},
+    ];
   final _scrollCtrl = ScrollController();
 
   @override
@@ -73,73 +81,110 @@ class _ProviderResidenceListScreenState extends State<ProviderResidenceListScree
           ),
         ],
       ),
-      body: Consumer<ProviderResidenceProvider>(
-        builder: (_, prov, __) {
-          if (prov.isLoading) {
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: 4,
-              itemBuilder: (_, __) => _ResidenceSkelCard(),
-            );
-          }
-          if (prov.error != null && prov.residences.isEmpty) {
-            return ErrorState(
-              message: prov.error!,
-              onRetry: () => prov.loadResidences(refresh: true),
-            );
-          }
-          if (prov.residences.isEmpty) {
-            return EmptyState(
-              message: 'Belum ada hunian.\nTambahkan listing pertamamu!',
-              icon: Icons.home_work_outlined,
-              iconColor: AppColors.residence,
-              action: ElevatedButton.icon(
-                onPressed: () => _goToForm(context),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Tambah Hunian'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.residence,
-                  minimumSize: const Size(160, 44),
+        body: Column(
+    children: [
+      Container(
+        color: AppColors.white,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _typeFilters.map((f) {
+              final isSelected = _filterType == f['value'];
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(f['label'] as String,
+                    style: TextStyle(
+                      fontFamily: 'Poppins', fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                    ),
+                  ),
+                  selected: isSelected,
+                  onSelected: (_) {
+                    setState(() => _filterType = f['value'] as String?);
+                    context.read<ProviderResidenceProvider>()
+                        .loadResidences(refresh: true, filterType: f['value'] as String?);
+                  },
+                  selectedColor: AppColors.residence,
+                  backgroundColor: AppColors.background,
+                  side: BorderSide(
+                    color: isSelected ? AppColors.residence : AppColors.border,
+                    width: 0.8,
+                  ),
+                  showCheckmark: false,
                 ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+      Expanded(
+        child: Consumer<ProviderResidenceProvider>(
+          builder: (_, prov, __) {
+            if (prov.isLoading) {
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: 4,
+                itemBuilder: (_, __) => _ResidenceSkelCard(),
+              );
+            }
+            if (prov.error != null && prov.residences.isEmpty) {
+              return ErrorState(
+                message: prov.error!,
+                onRetry: () => prov.loadResidences(refresh: true),
+              );
+            }
+            if (prov.residences.isEmpty) {
+              return EmptyState(
+                message: 'Belum ada hunian.\nTambahkan listing pertamamu!',
+                icon: Icons.home_work_outlined,
+                iconColor: AppColors.residence,
+                action: ElevatedButton.icon(
+                  onPressed: () => _goToForm(context),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Tambah Hunian'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.residence,
+                    minimumSize: const Size(160, 44),
+                  ),
+                ),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: () => prov.loadResidences(refresh: true),
+              color: AppColors.residence,
+              child: ListView.builder(
+                controller: _scrollCtrl,
+                padding: const EdgeInsets.all(16),
+                itemCount: prov.residences.length + (prov.isLoadingMore ? 1 : 0),
+                itemBuilder: (ctx, i) {
+                  if (i == prov.residences.length) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.residence),
+                      ),
+                    );
+                  }
+                  final r = prov.residences[i];
+                  return _ProviderResidenceCard(
+                    residence: r,
+                    onEdit: () => _goToForm(context, residence: r),
+                    onDelete: () => _confirmDelete(context, r, prov),
+                    onToggle: () => prov.toggleStatus(r.id),
+                  );
+                },
               ),
             );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () => prov.loadResidences(refresh: true),
-            color: AppColors.residence,
-            child: ListView.builder(
-              controller: _scrollCtrl,
-              padding: const EdgeInsets.all(16),
-              itemCount: prov.residences.length + (prov.isLoadingMore ? 1 : 0),
-              itemBuilder: (ctx, i) {
-                if (i == prov.residences.length) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.residence),
-                    ),
-                  );
-                }
-                final r = prov.residences[i];
-                return _ProviderResidenceCard(
-                  residence: r,
-                  onEdit: () => _goToForm(context, residence: r),
-                  onDelete: () => _confirmDelete(context, r, prov),
-                  onToggle: () => prov.toggleStatus(r.id),
-                );
-              },
-            ),
-          );
-        },
+          },
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _goToForm(context),
-        backgroundColor: AppColors.residence,
-        child: const Icon(Icons.add_rounded, color: Colors.white),
-      ),
-    );
-  }
+    ],
+  ),
+);
+}
 
   void _goToForm(BuildContext ctx, {ProviderResidenceModel? residence}) {
     Navigator.push(

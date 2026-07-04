@@ -56,7 +56,10 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
   void initState() {
     super.initState();
     _tabs = [
-      ProviderDashboardScreen(isResidence: widget.isResidence),
+      ProviderDashboardScreen(
+        isResidence: widget.isResidence,
+        onSwitchTab: (idx) => setState(() => _idx = idx),
+      ),
       if (widget.isResidence)
         const ProviderResidenceListScreen()
       else

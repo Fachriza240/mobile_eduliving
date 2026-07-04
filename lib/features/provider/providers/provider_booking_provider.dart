@@ -32,10 +32,7 @@ class ProviderBookingProvider extends ChangeNotifier {
 
   bool _lastIsResidence = true;
 
-  Future<void> loadBookings({
-    bool refresh = false,
-    required bool isResidence,
-  }) async {
+  Future<void> loadBookings({bool refresh = false, required bool isResidence, String? search}) async {
     _lastIsResidence = isResidence;
 
     if (refresh) {
@@ -62,6 +59,7 @@ class ProviderBookingProvider extends ChangeNotifier {
 
       final params = <String, dynamic>{'page': _currentPage};
       if (_selectedStatus.isNotEmpty) params['status'] = _selectedStatus;
+      if (search != null && search.isNotEmpty) params['search'] = search;
 
       final res = await _api.get(endpoint, queryParameters: params);
       final rawData = res['data'];
@@ -174,6 +172,7 @@ class ProviderBookingProvider extends ChangeNotifier {
         notes           : old.notes,
         rejectionReason : old.rejectionReason,
         createdAt       : old.createdAt,
+        documents       : old.documents, 
       );
     }
   }
