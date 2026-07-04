@@ -21,6 +21,28 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _showConfirm = false;
   bool _isLoading = false;
 
+  bool _hasMinLength = false;
+  bool _isMatching = false;
+  bool _hasTypedNew = false;
+  bool _hasTypedConfirm = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _newCtrl.addListener(_validateRealTime);
+    _confirmCtrl.addListener(_validateRealTime);
+  }
+
+  void _validateRealTime() {
+    setState(() {
+      if (_newCtrl.text.isNotEmpty) _hasTypedNew = true;
+      if (_confirmCtrl.text.isNotEmpty) _hasTypedConfirm = true;
+
+      _hasMinLength = _newCtrl.text.length >= 8;
+      _isMatching = _newCtrl.text.isNotEmpty && _newCtrl.text == _confirmCtrl.text;
+    });
+  }
+
   @override
   void dispose() {
     _currentCtrl.dispose();
@@ -31,7 +53,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // Validasi tambahan
+    if (!_hasMinLength || !_isMatching) return;
+
     setState(() => _isLoading = true);
+    FocusScope.of(context).unfocus();
 
     try {
       await context.read<AuthProvider>().changePassword(
@@ -43,8 +70,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Kata sandi berhasil diubah'),
-          backgroundColor: Colors.green,
+          content: Text('Kata sandi berhasil diubah!', style: TextStyle(fontFamily: 'Poppins')),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       Navigator.pop(context);
@@ -52,8 +80,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Colors.red,
+          content: Text(e.toString(), style: const TextStyle(fontFamily: 'Poppins')),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } finally {
@@ -64,47 +93,59 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Ubah Kata Sandi'),
+        title: const Text(
+          'Ubah Kata Sandi',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
+        elevation: 0.5,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
-
               // Info banner
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.07),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: AppColors.primary.withOpacity(0.2)),
+                  color: AppColors.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline,
-                        size: 18, color: AppColors.primary),
-                    const SizedBox(width: 10),
+                    Icon(Icons.shield_outlined, size: 22, color: AppColors.primary),
+                    const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
-                        'Kata sandi baru minimal 8 karakter.',
-                        style: TextStyle(fontSize: 13),
+                        'Amankan akun Anda dengan kata sandi yang kuat. Pastikan mudah diingat tapi sulit ditebak oleh orang lain.',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
               _buildField(
                 label: 'Kata Sandi Saat Ini',
@@ -117,7 +158,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     : null,
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               _buildField(
                 label: 'Kata Sandi Baru',
@@ -127,12 +168,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 isVisible: _showNew,
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Kata sandi baru wajib diisi';
-                  if (v.length < 8) return 'Minimal 8 karakter';
-                  return null;
+                  return null; // The real-time checker handles the length
                 },
               ),
+              if (_hasTypedNew) _buildRequirement(
+                isValid: _hasMinLength,
+                text: 'Minimal 8 karakter',
+              ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               _buildField(
                 label: 'Konfirmasi Kata Sandi Baru',
@@ -142,43 +186,80 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 isVisible: _showConfirm,
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Konfirmasi kata sandi wajib diisi';
-                  if (v != _newCtrl.text) return 'Kata sandi tidak cocok';
-                  return null;
+                  return null; // The real-time checker handles the match
                 },
               ),
+              if (_hasTypedConfirm) _buildRequirement(
+                isValid: _isMatching,
+                text: _isMatching ? 'Kata sandi cocok' : 'Kata sandi tidak cocok',
+                isError: !_isMatching,
+              ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
 
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 52,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    disabledBackgroundColor:
-                        AppColors.primary.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                          width: 20,
-                          height: 20,
+                          width: 24,
+                          height: 24,
                           child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
                         )
                       : const Text(
                           'Simpan Perubahan',
                           style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold),
+                            fontFamily: 'Poppins',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRequirement({required bool isValid, required String text, bool isError = false}) {
+    final Color color = isValid 
+        ? AppColors.success 
+        : (isError ? AppColors.error : AppColors.textHint);
+    
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, left: 4),
+      child: Row(
+        children: [
+          Icon(
+            isValid ? Icons.check_circle_rounded : (isError ? Icons.cancel_rounded : Icons.radio_button_unchecked_rounded),
+            size: 16,
+            color: color,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -194,43 +275,58 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           obscureText: obscure,
           validator: validator,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 14,
+          ),
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
+            errorStyle: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 11,
+            ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  BorderSide(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.border),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  BorderSide(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.border),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  BorderSide(color: AppColors.primary),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
             ),
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 14),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             suffixIcon: IconButton(
               onPressed: toggle,
               icon: Icon(
-                isVisible
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: Colors.grey,
+                isVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                color: AppColors.textHint,
                 size: 20,
               ),
             ),
@@ -240,3 +336,4 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 }
+

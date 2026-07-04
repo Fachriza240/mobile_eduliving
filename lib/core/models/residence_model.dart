@@ -23,6 +23,19 @@ class ResidenceModel {
   final bool? isBookmarked;
   final List<dynamic> ratings;
 
+  // Additional detail fields
+  final String? residenceType;
+  final String? kosType;
+  final double? roomSize;
+  final int? bedroomCount;
+  final int? bathroomCount;
+  final double? buildingSize;
+  final double? landSize;
+  final String? unitType;
+  final int? floorNumber;
+  final String? towerName;
+  final String? furnishStatus;
+
   ResidenceModel({
     required this.id,
     required this.providerId,
@@ -47,6 +60,17 @@ class ResidenceModel {
     this.ratingCount,
     this.isBookmarked,
     this.ratings = const [],
+    this.residenceType,
+    this.kosType,
+    this.roomSize,
+    this.bedroomCount,
+    this.bathroomCount,
+    this.buildingSize,
+    this.landSize,
+    this.unitType,
+    this.floorNumber,
+    this.towerName,
+    this.furnishStatus,
   });
 
   factory ResidenceModel.fromJson(Map<String, dynamic> json) {
@@ -54,6 +78,29 @@ class ResidenceModel {
       if (val == null) return [];
       if (val is List) return val.map((e) => e.toString()).toList();
       return [];
+    }
+
+    double? parsedRatingAverage = json['average_rating'] != null
+        ? double.tryParse(json['average_rating'].toString())
+        : (json['rating_average'] != null
+            ? double.tryParse(json['rating_average'].toString())
+            : null);
+
+    List<dynamic> parsedRatings = json['ratings'] as List<dynamic>? ?? [];
+
+    if ((parsedRatingAverage == null || parsedRatingAverage == 0) &&
+        parsedRatings.isNotEmpty) {
+      double sum = 0;
+      int count = 0;
+      for (var r in parsedRatings) {
+        if (r is Map && r['rating'] != null) {
+          sum += double.tryParse(r['rating'].toString()) ?? 0;
+          count++;
+        }
+      }
+      if (count > 0) {
+        parsedRatingAverage = sum / count;
+      }
     }
 
     return ResidenceModel(
@@ -82,12 +129,28 @@ class ResidenceModel {
       isActive: json['is_active'] ?? true,
       provider: json['provider'] as Map<String, dynamic>?,
       category: json['category'] as Map<String, dynamic>?,
-      ratingAverage: json['rating_average'] != null
-          ? double.tryParse(json['rating_average'].toString())
-          : null,
-      ratingCount: json['rating_count'],
+      ratingAverage: parsedRatingAverage,
+      ratingCount: json['rating_count'] ??
+          (parsedRatings.isNotEmpty ? parsedRatings.length : 0),
       isBookmarked: json['is_bookmarked'] as bool?,
-      ratings: json['ratings'] as List<dynamic>? ?? [],
+      ratings: parsedRatings,
+      residenceType: json['residence_type'],
+      kosType: json['kos_type'],
+      roomSize: json['room_size'] != null
+          ? double.tryParse(json['room_size'].toString())
+          : null,
+      bedroomCount: json['bedroom_count'],
+      bathroomCount: json['bathroom_count'],
+      buildingSize: json['building_size'] != null
+          ? double.tryParse(json['building_size'].toString())
+          : null,
+      landSize: json['land_size'] != null
+          ? double.tryParse(json['land_size'].toString())
+          : null,
+      unitType: json['unit_type'],
+      floorNumber: json['floor_number'],
+      towerName: json['tower_name'],
+      furnishStatus: json['furnish_status'],
     );
   }
 
@@ -110,6 +173,32 @@ class ResidenceModel {
   String get providerName => provider?['name'] ?? 'Provider';
 
   String get categoryName => category?['name'] ?? '-';
+
+  String get furnishStatusLabel {
+    switch (furnishStatus) {
+      case 'unfurnished':
+        return 'Unfurnished';
+      case 'semi_furnished':
+        return 'Semi Furnished';
+      case 'full_furnished':
+        return 'Full Furnished';
+      default:
+        return '-';
+    }
+  }
+
+  String get kosTypeLabel {
+    switch (kosType) {
+      case 'putra':
+        return 'Putra';
+      case 'putri':
+        return 'Putri';
+      case 'campur':
+        return 'Campur';
+      default:
+        return '-';
+    }
+  }
 
   String get rentalPeriodLabel {
     switch (rentalPeriod) {

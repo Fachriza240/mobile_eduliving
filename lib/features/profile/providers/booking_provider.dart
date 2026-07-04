@@ -59,7 +59,7 @@ class BookingProvider extends ChangeNotifier {
   // ── Batalkan Booking ─────────────────────────────────
   Future<bool> cancelBooking(int bookingId) async {
     try {
-      await _api.post(ApiConstants.userBookingCancel(bookingId));
+      await _api.patch(ApiConstants.userBookingCancel(bookingId));
 
       // Update status lokal tanpa reload
       final idx = _bookings.indexWhere((b) => b.id == bookingId);

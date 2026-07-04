@@ -13,6 +13,9 @@ class ResidenceProvider extends ChangeNotifier {
   String _searchQuery = '';
   String _selectedCategory = '';
   String? _selectedKosType; // NEW
+  double? _minPrice;
+  double? _maxPrice;
+  String? _sortBy;
   int _currentPage = 1;
   bool _hasMore = true;
 
@@ -21,7 +24,15 @@ class ResidenceProvider extends ChangeNotifier {
   String? _detailError;
 
   // ── Getters ──────────────────────────────────────────
-  List<ResidenceModel> get residences => _residences;
+  List<ResidenceModel> get residences {
+    if (_searchQuery.isEmpty) return _residences;
+    final lower = _searchQuery.toLowerCase();
+    return _residences.where((r) {
+      final name = r.name.toLowerCase();
+      final type = (r.residenceType ?? '').toLowerCase();
+      return name.contains(lower) || type.contains(lower);
+    }).toList();
+  }
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   String? get error => _error;
@@ -32,6 +43,9 @@ class ResidenceProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
   String? get selectedKosType => _selectedKosType;
+  double? get minPrice => _minPrice;
+  double? get maxPrice => _maxPrice;
+  String? get sortBy => _sortBy;
 
   // ── Setters ──────────────────────────────────────────
   void setSearch(String q) {
@@ -40,19 +54,20 @@ class ResidenceProvider extends ChangeNotifier {
     loadResidences(refresh: true);
   }
 
-  void setFilter({String? category, String? kosType}) {
-    bool changed = false;
-    if (category != null && _selectedCategory != category) {
-      _selectedCategory = category;
-      changed = true;
-    }
-    if (kosType != _selectedKosType) {
-      _selectedKosType = kosType;
-      changed = true;
-    }
-    if (changed) {
-      loadResidences(refresh: true);
-    }
+  void setFilter({
+    String? category,
+    String? kosType,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+  }) {
+    if (category != null) _selectedCategory = category;
+    _selectedKosType = kosType;
+    _minPrice = minPrice;
+    _maxPrice = maxPrice;
+    _sortBy = sortBy;
+    
+    loadResidences(refresh: true);
   }
 
   void setCategory(String cat) {
@@ -91,6 +106,15 @@ class ResidenceProvider extends ChangeNotifier {
       }
       if (_selectedKosType != null) {
         params['kos_type'] = _selectedKosType;
+      }
+      if (_minPrice != null) {
+        params['min_price'] = _minPrice;
+      }
+      if (_maxPrice != null) {
+        params['max_price'] = _maxPrice;
+      }
+      if (_sortBy != null) {
+        params['sort'] = _sortBy;
       }
 
       final res = await _api.get(
@@ -139,6 +163,9 @@ class ResidenceProvider extends ChangeNotifier {
     _searchQuery = '';
     _selectedCategory = '';
     _selectedKosType = null;
+    _minPrice = null;
+    _maxPrice = null;
+    _sortBy = null;
     loadResidences(refresh: true);
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+//import 'features/provider/providers/provider_report_provider.dart';
 
 import 'core/utils/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
@@ -21,8 +22,10 @@ import 'features/provider/providers/provider_marketplace_provider.dart';
 
 import 'features/bookmark/providers/bookmark_provider.dart';
 import 'features/marketplace/providers/marketplace_provider.dart';
+import 'features/marketplace/providers/cart_provider.dart';
 import 'features/bookmark/screens/bookmark_screen.dart';
-import 'features/marketplace/screens/marketplace_screen.dart';  
+import 'features/marketplace/screens/marketplace_screen.dart';
+import 'features/marketplace/screens/cart_screen.dart';
 import 'features/marketplace/screens/transaction_list_screen.dart';
 import 'features/profile/screens/change_password_screen.dart';
 import 'features/notification/notification_screen.dart';
@@ -64,10 +67,12 @@ class EduLivingApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProviderActivityProvider()),
         ChangeNotifierProvider(create: (_) => ProviderBookingProvider()),
         ChangeNotifierProvider(create: (_) => ProviderMarketplaceProvider()),
-        ChangeNotifierProvider(create: (_) => ProviderMarketplaceOrderProvider()),
+        ChangeNotifierProvider(
+            create: (_) => ProviderMarketplaceOrderProvider()),
         ChangeNotifierProvider(create: (_) => BookmarkProvider()),
         ChangeNotifierProvider(create: (_) => MarketplaceProvider()),
         ChangeNotifierProvider(create: (_) => MarketplaceTransactionProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: MaterialApp(
         title: 'EduLiving',
@@ -79,10 +84,10 @@ class EduLivingApp extends StatelessWidget {
           '/login': (_) => const LoginScreen(),
           '/register': (_) => const RegisterScreen(),
           '/home': (_) => const RootScreen(),
-
-          '/bookmarks':       (_) => const BookmarkScreen(),
-          '/marketplace':     (_) => const MarketplaceScreen(),
-          '/transactions':    (_) => const TransactionListScreen(),
+          '/bookmarks': (_) => const BookmarkScreen(),
+          '/marketplace': (_) => const MarketplaceScreen(),
+          '/cart': (_) => const CartScreen(),
+          '/transactions': (_) => const TransactionListScreen(),
           '/change-password': (_) => const ChangePasswordScreen(),
           '/notifications': (_) => const NotificationScreen(),
         },

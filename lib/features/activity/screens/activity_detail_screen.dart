@@ -9,6 +9,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../providers/activity_provider.dart';
 import '../../bookmark/providers/bookmark_provider.dart';
 import 'activity_booking_screen.dart';
+import '../../profile/screens/rating_screen.dart';
 
 class ActivityDetailScreen extends StatefulWidget {
   final int id;
@@ -21,6 +22,7 @@ class ActivityDetailScreen extends StatefulWidget {
 class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   int _imgIdx = 0;
   final _pageCtrl = PageController();
+  int? _ratingFilter;
 
   @override
   void initState() {
@@ -121,14 +123,14 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   InfoRow(
                     icon: Icons.calendar_today_outlined,
                     label: 'Tanggal Acara',
-                    value: formatDate(a.eventDate),
+                    value: formatDateWithTime(a.eventDate),
                     iconColor: AppColors.activity,
                   ),
                   if (a.registrationDeadline != null)
                     InfoRow(
                       icon: Icons.timer_outlined,
                       label: 'Batas Pendaftaran',
-                      value: formatDate(a.registrationDeadline),
+                      value: formatDateWithTime(a.registrationDeadline),
                       iconColor: a.isDeadlinePassed
                           ? AppColors.error
                           : AppColors.activity,
@@ -155,7 +157,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                 ]),
               ),
               const SizedBox(height: 8),
-              _section('Ulasan & Penilaian', _buildRatings(a.ratings)),
+              _section('Ulasan & Penilaian', _buildRatings(a)),
               const SizedBox(height: 100),
             ],
           ),
@@ -195,7 +197,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             const Icon(Icons.calendar_today_outlined,
                 size: 14, color: AppColors.activity),
             const SizedBox(width: 4),
-            Text(formatDate(a.eventDate),
+            Text(formatDateWithTime(a.eventDate),
                 style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 13,
@@ -332,8 +334,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary),
                   ),
-                  if (s['position'] != null)
-                    Text(s['position'].toString(),
+                  if (s['title'] != null || s['position'] != null || s['role'] != null)
+                    Text((s['title'] ?? s['role'] ?? s['position']).toString(),
                         style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 12,
@@ -382,67 +384,248 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
 
-  Widget _buildRatings(List<dynamic> ratings) {
-    if (ratings.isEmpty) {
+  Widget _buildRatings(ActivityModel activity) {
+    var ratings = activity.ratings;
+    final currentUserId = Provider.of<AuthProvider>(context, listen: false).user?.id;
+
+    if (activity.ratings.isEmpty) {
       return const Text('Belum ada ulasan untuk acara ini.',
           style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 13,
               color: AppColors.textSecondary));
     }
-    return Column(
-      children: ratings.map((r) {
-        final user = r['user'] as Map<String, dynamic>?;
-        final userName = user?['name'] ?? 'Pengguna';
-        final ratingVal = double.tryParse(r['rating']?.toString() ?? '0') ?? 0;
-        final comment = r['comment'] ?? '';
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    // Filter logic
+    if (_ratingFilter != null) {
+      ratings = ratings.where((r) {
+        final val = double.tryParse(r['rating']?.toString() ?? '0') ?? 0;
+        return val == _ratingFilter!.toDouble();
+      }).toList();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Filter UI
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(userName,
-                      style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary)),
-                  Row(
-                    children: [
-                      const Icon(Icons.star_rounded, size: 16, color: Colors.orange),
-                      const SizedBox(width: 4),
-                      Text(ratingVal.toString(),
-                          style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary)),
-                    ],
-                  ),
-                ],
-              ),
-              if (comment.toString().trim().isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(comment.toString(),
-                    style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 13,
-                        color: AppColors.textSecondary)),
-              ]
+              _buildStarFilterChip('Semua', null),
+              const SizedBox(width: 8),
+              _buildStarFilterChip('5 Bintang', 5),
+              const SizedBox(width: 8),
+              _buildStarFilterChip('4 Bintang', 4),
+              const SizedBox(width: 8),
+              _buildStarFilterChip('3 Bintang', 3),
+              const SizedBox(width: 8),
+              _buildStarFilterChip('2 Bintang', 2),
+              const SizedBox(width: 8),
+              _buildStarFilterChip('1 Bintang', 1),
             ],
           ),
-        );
-      }).toList(),
+        ),
+        const SizedBox(height: 16),
+        if (ratings.isEmpty)
+          const Text('Tidak ada ulasan dengan rating tersebut.',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: AppColors.textSecondary))
+        else
+          ...ratings.map((r) {
+            final user = r['user'] as Map<String, dynamic>?;
+            final userName = user?['name'] ?? 'Pengguna';
+            final userId = r['user_id'];
+            final ratingVal = double.tryParse(r['rating']?.toString() ?? '0') ?? 0;
+            final comment = r['review'] ?? '';
+            final photoPath = r['photo_path']?.toString();
+            final providerReply = r['provider_reply']?.toString();
+            final initial = userName.isNotEmpty ? userName[0].toUpperCase() : '?';
+
+            // Coba parsing tanggal
+            String dateStr = '';
+            if (r['created_at'] != null) {
+              final dt = DateTime.tryParse(r['created_at'].toString());
+              if (dt != null) {
+                final months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                dateStr = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+              }
+            }
+
+            final isMyReview = currentUserId != null && userId == currentUserId;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: AppColors.activityLight,
+                        child: Text(initial,
+                            style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.activity)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(userName,
+                                    style: const TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary)),
+                                Row(
+                                  children: [
+                                    if (dateStr.isNotEmpty)
+                                      Text(dateStr,
+                                          style: const TextStyle(
+                                              fontFamily: 'Poppins',
+                                              fontSize: 11,
+                                              color: AppColors.textHint)),
+                                    if (isMyReview) ...[
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => RatingScreen(
+                                              isResidence: false,
+                                              rateableId: activity.id,
+                                              rateableName: activity.name,
+                                            ),
+                                          ),
+                                        ).then((_) {
+                                          // Reload detail to show updated rating
+                                          context.read<ActivityProvider>().loadActivityDetail(activity.id);
+                                        }),
+                                        child: const Icon(Icons.edit_square, size: 16, color: AppColors.activity),
+                                      ),
+                                    ]
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: List.generate(
+                                5,
+                                (index) => Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: index < ratingVal
+                                      ? Colors.orange
+                                      : Colors.grey[300],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (comment.toString().trim().isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(comment.toString(),
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                            color: AppColors.textSecondary)),
+                  ],
+                  if (photoPath != null && photoPath.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: EduImage(
+                        path: photoPath,
+                        width: 100,
+                        height: 100,
+                      ),
+                    ),
+                  ],
+                  if (providerReply != null && providerReply.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.activity.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.activityLight),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.reply_rounded, size: 14, color: AppColors.activity),
+                              SizedBox(width: 6),
+                              Text('Balasan Penyelenggara',
+                                  style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.activity)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(providerReply,
+                              style: const TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildStarFilterChip(String label, int? value) {
+    final isSelected = _ratingFilter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _ratingFilter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.activity : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: isSelected ? AppColors.activity : AppColors.border),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? Colors.white : AppColors.textSecondary,
+          ),
+        ),
+      ),
     );
   }
 
@@ -596,16 +779,19 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           height: 1.7,
           color: AppColors.textSecondary));
 
-  Widget _backBtn() => GestureDetector(
-        onTap: () => Navigator.pop(context),
-        child: Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(10)),
-          child: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 18, color: AppColors.textPrimary),
+  Widget _backBtn() => IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+            ],
+          ),
+          child: const Icon(Icons.arrow_back_rounded, color: Colors.black87, size: 20),
         ),
+        onPressed: () => Navigator.pop(context),
       );
 
   void _loginRequired() {

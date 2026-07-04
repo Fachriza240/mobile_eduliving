@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/app_helpers.dart';
 import '../../marketplace/screens/become_provider_marketplace_screen.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/booking_provider.dart';
 import '../../profile/screens/booking_list_screen.dart';
 import '../../profile/screens/edit_profile_screen.dart';
-// ← UBAH: baris import provider_marketplace_list_screen dihapus dari sini
 
 class ProfilTab extends StatelessWidget {
   const ProfilTab({super.key});
@@ -37,9 +37,12 @@ class ProfilTab extends StatelessWidget {
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _profileHeader(context, auth),
-              const SizedBox(height: 8),
+              _buildProfileCard(context, auth),
+              const SizedBox(height: 24),
+              _buildRolesSection(context, auth),
+              const SizedBox(height: 16),
               _statsRow(context),
               const SizedBox(height: 8),
               _menuList(context, auth),
@@ -51,88 +54,328 @@ class ProfilTab extends StatelessWidget {
     );
   }
 
-  Widget _profileHeader(BuildContext context, AuthProvider auth) {
+  Widget _buildProfileCard(BuildContext context, AuthProvider auth) {
     final user = auth.user!;
-    return Container(
-      color: AppColors.white,
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        children: [
-          Container(
-            width: 76,
-            height: 76,
+    final joinDate = AppHelpers.formatDate(user.createdAt?.toString() ?? DateTime.now().toString());
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        // Blue Banner
+        Container(
+          height: 140,
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        // White Card
+        Container(
+          margin: const EdgeInsets.only(top: 80, left: 16, right: 16),
+          padding: const EdgeInsets.fromLTRB(16, 40, 16, 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Name and Edit Button row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(user.name, style: const TextStyle(fontFamily: 'Poppins', fontSize: 18, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(color: const Color(0xFFE0E7FF), borderRadius: BorderRadius.circular(20)),
+                              child: Text('User', style: const TextStyle(fontFamily: 'Poppins', fontSize: 10, color: Color(0xFF3730A3), fontWeight: FontWeight.w600)),
+                            ),
+                            if (user.isApprovedSeller) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(20)),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.storefront, size: 12, color: Color(0xFFC2410C)),
+                                    const SizedBox(width: 4),
+                                    Text('Penjual Marketplace', style: const TextStyle(fontFamily: 'Poppins', fontSize: 10, color: Color(0xFFC2410C), fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              ),
+                            ]
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.primary),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.edit_outlined, size: 14, color: AppColors.primary),
+                          SizedBox(width: 4),
+                          Text('Edit Profil', style: TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Divider(color: AppColors.divider),
+              ),
+              // User Details Grid / List
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Email', style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textHint)),
+                        const SizedBox(height: 2),
+                        Text(user.email, style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Nomor Telepon', style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textHint)),
+                        const SizedBox(height: 2),
+                        Text(user.phone ?? '-', style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text('Alamat', style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textHint)),
+              const SizedBox(height: 2),
+              Text(user.address ?? '-', style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 12),
+              const Text('Terdaftar pada', style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textHint)),
+              const SizedBox(height: 2),
+              Text(joinDate, style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+        // Avatar
+        Positioned(
+          top: 35,
+          left: 32,
+          child: Container(
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(38),
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 4),
+              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
               image: user.profilePicture != null
-                  ? DecorationImage(
-                      image: NetworkImage(user.profilePicture!),
-                      fit: BoxFit.cover,
-                    )
+                  ? DecorationImage(image: NetworkImage(user.profilePicture!), fit: BoxFit.cover)
                   : null,
             ),
             child: user.profilePicture == null
                 ? Center(
                     child: Text(
                       user.initials,
-                      style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white),
+                      style: const TextStyle(fontFamily: 'Poppins', fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.primary),
                     ),
                   )
                 : null,
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(user.name,
-                    style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary)),
-                const SizedBox(height: 2),
-                Text(user.email,
-                    style: const TextStyle(
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRolesSection(BuildContext context, AuthProvider auth) {
+    final user = auth.user!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.sync_alt_rounded, color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              const Text('Kelola Peran Akun', style: TextStyle(fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text('Satu akun dapat memiliki beberapa peran sekaligus. Daftarkan diri Anda untuk membuka akses fitur tambahan.',
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textSecondary)),
+          const SizedBox(height: 16),
+          // Marketplace Card
+          _buildRoleCard(
+            context,
+            icon: Icons.storefront_rounded,
+            iconBg: const Color(0xFFFFF7ED),
+            iconColor: const Color(0xFFEA580C),
+            title: 'Penjual Marketplace',
+            desc: 'Jual barang bekas mahasiswa',
+            status: user.isApprovedSeller ? 'Aktif' : (user.isPendingSeller ? 'Menunggu' : 'Belum terdaftar'),
+            statusColor: user.isApprovedSeller ? Colors.green : (user.isPendingSeller ? Colors.orange : AppColors.textHint),
+            buttonLabel: user.isApprovedSeller ? 'Dashboard Penjual' : (user.isPendingSeller ? 'Menunggu Persetujuan' : '+ Daftar Sekarang'),
+            buttonColor: user.isApprovedSeller ? const Color(0xFFEA580C) : (user.isPendingSeller ? Colors.orange : Colors.white),
+            buttonTextColor: user.isApprovedSeller || user.isPendingSeller ? Colors.white : AppColors.primary,
+            onTap: () {
+              if (user.isApprovedSeller) {
+                auth.updateUserLocal(user.copyWith(isSellerModeActive: true));
+                Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+              } else if (user.isNotRegisteredSeller) {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const BecomeProviderMarketplaceScreen())).then((_) {
+                  if (context.mounted) context.read<AuthProvider>().refreshUser();
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          // Event Card
+          _buildRoleCard(
+            context,
+            icon: Icons.event_available_rounded,
+            iconBg: const Color(0xFFFAF5FF),
+            iconColor: const Color(0xFF9333EA),
+            title: 'Penjual Event',
+            desc: 'Selenggarakan & jual tiket event',
+            status: 'Segera Hadir',
+            statusColor: AppColors.textHint,
+            buttonLabel: 'Segera Hadir',
+            buttonColor: AppColors.background,
+            buttonTextColor: AppColors.textHint,
+            onTap: () => _soon(context, 'Pendaftaran Penjual Event'),
+          ),
+          const SizedBox(height: 12),
+          // Kos Card
+          _buildRoleCard(
+            context,
+            icon: Icons.home_work_rounded,
+            iconBg: const Color(0xFFECFDF5),
+            iconColor: const Color(0xFF059669),
+            title: 'Penyedia Kos-Kosan',
+            desc: 'Sewakan hunian untuk mahasiswa',
+            status: 'Segera Hadir',
+            statusColor: AppColors.textHint,
+            buttonLabel: 'Segera Hadir',
+            buttonColor: AppColors.background,
+            buttonTextColor: AppColors.textHint,
+            onTap: () => _soon(context, 'Pendaftaran Penyedia Hunian'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoleCard(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String title,
+    required String desc,
+    required String status,
+    required Color statusColor,
+    required String buttonLabel,
+    required Color buttonColor,
+    required Color buttonTextColor,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, color: iconColor, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(desc, style: const TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Row(
+                children: [
+                  Container(width: 6, height: 6, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  Text(status, style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: statusColor, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: onTap,
+                child: Container(
+                  height: 32,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: buttonColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: buttonTextColor == Colors.white
+                          ? buttonColor
+                          : buttonTextColor.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      buttonLabel,
+                      style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,
-                        color: AppColors.textSecondary)),
-                const SizedBox(height: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(20),
+                        fontWeight: FontWeight.w600,
+                        color: buttonTextColor,
+                      ),
+                    ),
                   ),
-                  child: Text(user.roleLabel,
-                      style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary)),
                 ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.edit_outlined,
-                  size: 18, color: AppColors.primary),
-            ),
+            ],
           ),
         ],
       ),
@@ -182,8 +425,6 @@ class ProfilTab extends StatelessWidget {
       Container(width: 1, height: 36, color: AppColors.divider);
 
   Widget _menuList(BuildContext context, AuthProvider auth) {
-    final user = auth.user!;
-
     return Container(
       color: AppColors.white,
       child: Column(
@@ -218,68 +459,20 @@ class ProfilTab extends StatelessWidget {
               iconColor: AppColors.market,
               onTap: () => Navigator.pushNamed(context, '/bookmarks')),
           _dividerFull(),
-          _sectionLabel('Akun'),
-
-          // Kondisi 1: Sudah di-approve → Buka Toko
-          if (user.isApprovedSeller)
-            _item(context,
-                icon: Icons.storefront_rounded,
-                label: 'Buka Toko',
-                desc: 'Kelola produk dan pesanan kamu',
-                iconBg: AppColors.marketLight,
-                iconColor: AppColors.market, onTap: () {
-              // ← UBAH: set isSellerModeActive = true
-              // agar RootScreen render ProviderMarketplaceHomeScreen
-              auth.updateUserLocal(
-                user.copyWith(isSellerModeActive: true),
-              );
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/home',
-                (_) => false,
-              );
-            }),
-
-          // Kondisi 2: Sudah submit, menunggu admin
-          if (user.isPendingSeller)
-            _itemStatic(context,
-                icon: Icons.hourglass_top_rounded,
-                label: 'Pengajuan Penjual',
-                desc: 'Menunggu persetujuan admin',
-                iconBg: const Color(0xFFFFF8E1),
-                iconColor: const Color(0xFFF9A825)),
-
-          // Kondisi 3: Belum daftar → form pendaftaran
-          if (user.isNotRegisteredSeller)
-            _item(context,
-                icon: Icons.storefront_rounded,
-                label: 'Jadi Penjual',
-                desc: 'Daftar sebagai provider marketplace',
-                iconBg: AppColors.marketLight,
-                iconColor: AppColors.market, onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const BecomeProviderMarketplaceScreen(),
-                ),
-              );
-              if (context.mounted) {
-                await context.read<AuthProvider>().refreshUser();
-              }
-            }),
-
-          _dividerFull(),
+          _sectionLabel('Akun & Keamanan'),
           _item(context,
               icon: Icons.person_outline_rounded,
               label: 'Edit Profil',
-              desc: 'Ubah nama dan informasi pribadi',
+              desc: 'Ubah informasi personal',
               iconBg: AppColors.primaryLight,
-              iconColor: AppColors.primary,
-              onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const EditProfileScreen()),
-                  )),
+              iconColor: AppColors.primary, onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+            ).then((_) {
+              if (context.mounted) auth.refreshUser();
+            });
+          }),
           _dividerFull(),
           _item(context,
               icon: Icons.lock_outline_rounded,
@@ -384,62 +577,7 @@ class ProfilTab extends StatelessWidget {
         ),
       );
 
-  Widget _itemStatic(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String desc,
-    required Color iconBg,
-    required Color iconColor,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-                color: iconBg, borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary)),
-                Text(desc,
-                    style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 11,
-                        color: AppColors.textHint)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF8E1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFFFE082)),
-            ),
-            child: const Text(
-              'Pending',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFFF9A825),
-              ),
-            ),
-          ),
-        ]),
-      );
+
 
   Widget _dividerFull() =>
       const Divider(height: 1, indent: 74, color: AppColors.divider);

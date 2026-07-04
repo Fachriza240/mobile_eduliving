@@ -10,6 +10,7 @@ class MarketplaceProductModel {
   final bool isAvailable;
   final double averageRating;
   final int ratingsCount;
+  final int viewsCount;
   final MarketplaceSeller seller;
   final MarketplaceCategory? category;
   final DateTime createdAt;
@@ -26,6 +27,7 @@ class MarketplaceProductModel {
     required this.isAvailable,
     required this.averageRating,
     required this.ratingsCount,
+    required this.viewsCount,
     required this.seller,
     this.category,
     required this.createdAt,
@@ -62,6 +64,7 @@ class MarketplaceProductModel {
       isAvailable: json['is_available'] ?? false,
       averageRating: (json['average_rating'] ?? 0).toDouble(),
       ratingsCount: json['ratings_count'] ?? 0,
+      viewsCount: json['views_count'] ?? 0,
       seller: MarketplaceSeller.fromJson(json['seller'] ?? {}),
       category: json['category'] != null
           ? MarketplaceCategory.fromJson(json['category'])
@@ -76,12 +79,14 @@ class MarketplaceSeller {
   final String name;
   final String? profilePicture;
   final String? phone;
+  final String? address;
 
   MarketplaceSeller({
     required this.id,
     required this.name,
     this.profilePicture,
     this.phone,
+    this.address,
   });
 
   factory MarketplaceSeller.fromJson(Map<String, dynamic> json) =>
@@ -90,6 +95,7 @@ class MarketplaceSeller {
         name: json['name'] ?? '',
         profilePicture: json['profile_picture'],
         phone: json['phone'],
+        address: json['address'] ?? json['residence_name'],
       );
 }
 
@@ -118,6 +124,7 @@ class MarketplaceTransactionModel {
   final String? pickupAddress;
   final String? pickupNotes;
   final String paymentMethod;
+  final String paymentStatus;
   final String? paymentProofUrl;
   final MarketplaceProductModel? product;
   final MarketplaceSeller? seller;
@@ -136,6 +143,7 @@ class MarketplaceTransactionModel {
     this.pickupAddress,
     this.pickupNotes,
     required this.paymentMethod,
+    required this.paymentStatus,
     this.paymentProofUrl,
     this.product,
     this.seller,
@@ -151,6 +159,9 @@ class MarketplaceTransactionModel {
       'completed': 'Selesai',
       'cancelled': 'Dibatalkan',
     };
+    if (status == 'pending' && paymentStatus == 'paid') {
+      return 'Bukti Dikirim';
+    }
     return labels[status] ?? status;
   }
 
@@ -177,7 +188,8 @@ class MarketplaceTransactionModel {
       pickupAddress: json['pickup_address'],
       pickupNotes: json['pickup_notes'],
       paymentMethod: json['payment_method'] ?? '',
-      paymentProofUrl: json['payment_proof_url'],
+      paymentStatus: json['payment_status'] ?? 'unpaid',
+      paymentProofUrl: json['payment_proof'] ?? json['payment_proof_url'],
       product: json['product'] != null
           ? MarketplaceProductModel.fromJson(json['product'])
           : null,

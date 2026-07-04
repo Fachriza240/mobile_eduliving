@@ -93,6 +93,17 @@ String formatDateShort(DateTime? date) {
   return '${date.day} ${months[date.month]} ${date.year}';
 }
 
+String formatDateWithTime(DateTime? date) {
+  if (date == null) return '-';
+  final localDate = date.toLocal();
+  const months = [
+    '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+  ];
+  String twoDigits(int n) => n.toString().padLeft(2, "0");
+  return '${twoDigits(localDate.day)} ${months[localDate.month]} ${localDate.year}, ${twoDigits(localDate.hour)}:${twoDigits(localDate.minute)} WIB';
+}
+
 // ============================================================
 // SKELETON LOADING
 // ============================================================

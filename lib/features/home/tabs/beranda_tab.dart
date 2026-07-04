@@ -89,13 +89,18 @@ class _BerandaTabState extends State<BerandaTab> {
               title: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
+                  Image.asset(
+                    'assets/images/Infoma_Branding.png',
+                    width: 32,
+                    height: 32,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.school_rounded, color: Colors.white, size: 22),
                     ),
-                    child: const Icon(Icons.school_rounded, color: Colors.white, size: 22),
                   ),
                   const SizedBox(width: 8),
                   const Text(

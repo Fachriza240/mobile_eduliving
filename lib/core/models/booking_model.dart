@@ -14,6 +14,8 @@ class BookingModel {
   final Map<String, dynamic>? bookable;
   final Map<String, dynamic>? transaction;
   final DateTime? createdAt;
+  final DateTime? paymentDeadline;
+  final bool paymentExpired;
 
   BookingModel({
     required this.id,
@@ -31,6 +33,8 @@ class BookingModel {
     this.bookable,
     this.transaction,
     this.createdAt,
+    this.paymentDeadline,
+    this.paymentExpired = false,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -43,10 +47,14 @@ class BookingModel {
       status: json['status'] ?? 'pending',
       startDate: json['start_date'] != null
           ? DateTime.tryParse(json['start_date'].toString())
-          : null,
+          : (json['check_in_date'] != null
+              ? DateTime.tryParse(json['check_in_date'].toString())
+              : null),
       endDate: json['end_date'] != null
           ? DateTime.tryParse(json['end_date'].toString())
-          : null,
+          : (json['check_out_date'] != null
+              ? DateTime.tryParse(json['check_out_date'].toString())
+              : null),
       totalPrice: json['total_price'] != null
           ? double.tryParse(json['total_price'].toString())
           : null,
@@ -58,6 +66,10 @@ class BookingModel {
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,
+      paymentDeadline: json['payment_deadline'] != null
+          ? DateTime.tryParse(json['payment_deadline'].toString())
+          : null,
+      paymentExpired: json['payment_expired'] as bool? ?? false,
     );
   }
 

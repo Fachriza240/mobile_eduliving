@@ -106,21 +106,26 @@ class _SplashScreenState extends State<SplashScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             // Logo
-                            Container(
-                              width: 96,
-                              height: 96,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(28),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.25),
-                                  width: 1.5,
+                            Image.asset(
+                              'assets/images/Infoma_Branding.png',
+                              width: 120,
+                              height: 120,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 96,
+                                height: 96,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.25),
+                                    width: 1.5,
+                                  ),
                                 ),
-                              ),
-                              child: const Icon(
-                                Icons.school_rounded,
-                                size: 54,
-                                color: Colors.white,
+                                child: const Icon(
+                                  Icons.school_rounded,
+                                  size: 54,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 28),

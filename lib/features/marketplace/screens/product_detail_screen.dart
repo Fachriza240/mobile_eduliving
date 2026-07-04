@@ -7,6 +7,8 @@ import '../../../core/utils/app_helpers.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../bookmark/providers/bookmark_provider.dart';
+import '../providers/cart_provider.dart';
+import 'checkout_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
@@ -39,17 +41,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
-  void _showBuySheet() {
-    if (_product == null) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => _BuySheet(product: _product!),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -79,6 +70,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             pinned: true,
             backgroundColor: Colors.white,
             foregroundColor: Colors.black,
+            leading: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2))
+                  ],
+                ),
+                child: const Icon(Icons.arrow_back_rounded, color: Colors.black87, size: 20),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
             actions: [
               Consumer<BookmarkProvider>(
                 builder: (context, bookmarkProv, _) {
@@ -115,6 +123,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
+                fit: StackFit.expand,
                 children: [
                   PageView.builder(
                     itemCount:
@@ -234,6 +243,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                           if (product.averageRating > 0)
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Icon(Icons.star,
                                     color: Colors.amber, size: 16),
@@ -347,6 +357,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: const [
                                 Icon(Icons.chat_outlined,
                                     size: 14, color: Colors.green),
@@ -408,33 +419,83 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ],
       ),
 
-      // Tombol beli (sticky bottom)
+      // Tombol beli dan keranjang
       bottomNavigationBar: product.isAvailable
-          ? Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
+          ? SafeArea(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
                       color: Colors.black.withOpacity(0.06),
                       blurRadius: 10,
-                      offset: const Offset(0, -3))
-                ],
-              ),
-              child: SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _showBuySheet,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.market,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text(
-                    'Beli Sekarang',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                      offset: const Offset(0, -3),
+                    )
+                  ],
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Kalkulasi lebar aman tanpa menggunakan Expanded
+                    // Lebar OutlinedButton sekitar 50, spacing 12.
+                    final available = constraints.maxWidth;
+                    final isInfinite = available == double.infinity;
+                    final buttonWidth = isInfinite ? 250.0 : (available - 50 - 12);
+
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              context.read<CartProvider>().addItem(product);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        '${product.name} ditambahkan ke keranjang')),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              side: const BorderSide(color: AppColors.market),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Icon(Icons.add_shopping_cart,
+                                color: AppColors.market),
+                          ),
+                        ),
+                        SizedBox(
+                          width: buttonWidth > 0 ? buttonWidth : 200,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CheckoutScreen(
+                                      product: product, quantity: 1),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.market,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text(
+                              'Beli Sekarang',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             )
@@ -458,406 +519,6 @@ class _DotIndicator extends StatelessWidget {
       decoration: BoxDecoration(
         color: active ? Colors.white : Colors.white54,
         borderRadius: BorderRadius.circular(3),
-      ),
-    );
-  }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-//  FORM BELI
-// ────────────────────────────────────────────────────────────────────────────
-
-class _BuySheet extends StatefulWidget {
-  final MarketplaceProductModel product;
-
-  const _BuySheet({required this.product});
-
-  @override
-  State<_BuySheet> createState() => _BuySheetState();
-}
-
-class _BuySheetState extends State<_BuySheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
-  final _notesCtrl = TextEditingController();
-  final _pickupAddressCtrl = TextEditingController();
-  final _paymentCtrl = TextEditingController();
-
-  int _quantity = 1;
-  String _pickupMethod = 'meetup';
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Pre-fill dari data profil user jika tersedia
-    final user = context.read<AuthProvider>().user;
-    if (user != null) {
-      _nameCtrl.text = user.name;
-      _phoneCtrl.text = user.phone ?? '';
-      _addressCtrl.text = user.address ?? '';
-    }
-  }
-
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _phoneCtrl.dispose();
-    _addressCtrl.dispose();
-    _notesCtrl.dispose();
-    _pickupAddressCtrl.dispose();
-    _paymentCtrl.dispose();
-    super.dispose();
-  }
-
-  double get _total => widget.product.price * _quantity;
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-
-    try {
-      await context
-          .read<MarketplaceTransactionProvider>()
-          .buyProduct(widget.product.id, {
-        'quantity': _quantity,
-        'buyer_name': _nameCtrl.text,
-        'buyer_phone': _phoneCtrl.text,
-        'buyer_address': _addressCtrl.text,
-        'pickup_method': _pickupMethod,
-        'pickup_address':
-            _pickupAddressCtrl.text.isNotEmpty ? _pickupAddressCtrl.text : null,
-        'pickup_notes': _notesCtrl.text.isNotEmpty ? _notesCtrl.text : null,
-        'payment_method': _paymentCtrl.text,
-      });
-
-      if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Pesanan berhasil dibuat! Hubungi penjual untuk konfirmasi.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pushNamed(context, '/transactions');
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Form Pembelian',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close)),
-                ],
-              ),
-
-              // Ringkasan produk
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.market.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    if (widget.product.firstImage.isNotEmpty)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: EduImage(
-                          path: widget.product.firstImage,
-                          width: 50,
-                          height: 50,
-                          placeholderIcon: Icons.storefront_outlined,
-                          placeholderColor: AppColors.marketLight,
-                          iconColor: AppColors.market,
-                        ),
-                      ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(widget.product.name,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600, fontSize: 13),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                          Text(AppHelpers.formatPrice(widget.product.price),
-                              style: TextStyle(
-                                  color: AppColors.market,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                    // Quantity picker
-                    Row(
-                      children: [
-                        _QtyBtn(
-                          icon: Icons.remove,
-                          onPressed: _quantity > 1
-                              ? () => setState(() => _quantity--)
-                              : null,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Text('$_quantity',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 15)),
-                        ),
-                        _QtyBtn(
-                          icon: Icons.add,
-                          onPressed: _quantity < widget.product.stockQuantity
-                              ? () => setState(() => _quantity++)
-                              : null,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              _inputField('Nama Penerima', _nameCtrl, required: true),
-              const SizedBox(height: 12),
-              _inputField('No. HP / WhatsApp', _phoneCtrl,
-                  keyboard: TextInputType.phone, required: true),
-              const SizedBox(height: 12),
-              _inputField('Alamat Lengkap', _addressCtrl,
-                  maxLines: 2, required: true),
-              const SizedBox(height: 12),
-
-              // Metode pengambilan
-              const Text('Metode Pengambilan',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _MethodChip(
-                      label: 'COD / Ketemu',
-                      value: 'meetup',
-                      selected: _pickupMethod,
-                      onTap: (v) => setState(() => _pickupMethod = v)),
-                  const SizedBox(width: 8),
-                  _MethodChip(
-                      label: 'Diantar',
-                      value: 'delivery',
-                      selected: _pickupMethod,
-                      onTap: (v) => setState(() => _pickupMethod = v)),
-                  const SizedBox(width: 8),
-                  _MethodChip(
-                      label: 'Ambil Sendiri',
-                      value: 'pickup',
-                      selected: _pickupMethod,
-                      onTap: (v) => setState(() => _pickupMethod = v)),
-                ],
-              ),
-
-              if (_pickupMethod != 'meetup') ...[
-                const SizedBox(height: 12),
-                _inputField(
-                  _pickupMethod == 'delivery'
-                      ? 'Alamat Pengiriman'
-                      : 'Lokasi Pengambilan',
-                  _pickupAddressCtrl,
-                  maxLines: 2,
-                ),
-              ],
-
-              const SizedBox(height: 12),
-              _inputField(
-                  'Metode Pembayaran (misal: Transfer BCA)', _paymentCtrl,
-                  required: true),
-              const SizedBox(height: 12),
-              _inputField('Catatan (opsional)', _notesCtrl, maxLines: 2),
-
-              const SizedBox(height: 16),
-
-              // Total
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Total Pembayaran',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                  Text(
-                    AppHelpers.formatPrice(_total),
-                    style: TextStyle(
-                        color: AppColors.market,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.market,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
-                        )
-                      : Text(
-                          'Beli ${AppHelpers.formatPrice(_total)}',
-                          style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold),
-                        ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _inputField(
-    String label,
-    TextEditingController ctrl, {
-    int maxLines = 1,
-    TextInputType keyboard = TextInputType.text,
-    bool required = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: ctrl,
-          maxLines: maxLines,
-          keyboardType: keyboard,
-          validator: required
-              ? (v) => (v == null || v.isEmpty) ? '$label wajib diisi' : null
-              : null,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey[50],
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AppColors.market),
-            ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _QtyBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onPressed;
-
-  const _QtyBtn({required this.icon, this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: onPressed != null
-              ? AppColors.market.withOpacity(0.12)
-              : Colors.grey[200],
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Icon(icon,
-            size: 16,
-            color: onPressed != null ? AppColors.market : Colors.grey),
-      ),
-    );
-  }
-}
-
-class _MethodChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final String selected;
-  final Function(String) onTap;
-
-  const _MethodChip({
-    required this.label,
-    required this.value,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isSelected = selected == value;
-    return GestureDetector(
-      onTap: () => onTap(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.market : Colors.grey[100],
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[600],
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
       ),
     );
   }

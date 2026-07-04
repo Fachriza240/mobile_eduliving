@@ -7,6 +7,8 @@ import '../../../core/utils/app_helpers.dart';
 import '../../../core/widgets/common_widgets.dart';
 import 'product_detail_screen.dart';
 import '../../../features/auth/providers/auth_provider.dart'; 
+import '../providers/cart_provider.dart';
+import 'cart_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   final bool showBackButton;
@@ -97,6 +99,40 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     color: AppColors.textPrimary)),
           ],
         ),
+        actions: [
+          Consumer<CartProvider>(
+            builder: (context, cart, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.market),
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
+                    },
+                  ),
+                  if (cart.itemCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${cart.itemCount}',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
@@ -204,7 +240,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      childAspectRatio: 0.72,
+                      childAspectRatio: 0.58,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                     ),
@@ -344,14 +380,35 @@ class _ProductCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (product.category != null) ...[
+                      Text(
+                        product.category!.name.toUpperCase(),
+                        style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 2),
+                    ],
                     Text(
                       product.name,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           height: 1.3),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      product.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[600],
+                        height: 1.2,
+                      ),
                     ),
                     const Spacer(),
                     Text(
@@ -365,24 +422,65 @@ class _ProductCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        if (product.averageRating > 0) ...[
-                          const Icon(Icons.star, size: 11, color: Colors.amber),
-                          const SizedBox(width: 2),
-                          Text(
-                            product.averageRating.toStringAsFixed(1),
-                            style: const TextStyle(
-                                fontSize: 11, color: Colors.grey),
+                        const Icon(Icons.location_on_outlined, size: 11, color: Colors.grey),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          child: Text(
+                            product.seller.address ?? product.seller.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 9, color: Colors.grey),
                           ),
-                          const SizedBox(width: 6),
-                        ],
-                        Text(
-                          '${product.seller.name}',
-                          style:
-                              TextStyle(fontSize: 11, color: Colors.grey[500]),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.inventory_2_outlined, size: 11, color: Colors.grey),
+                        const SizedBox(width: 2),
+                        Text(
+                          'Stok ${product.stockQuantity}',
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.remove_red_eye_outlined, size: 11, color: Colors.grey),
+                        const SizedBox(width: 2),
+                        Text(
+                          '${product.viewsCount}',
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 28,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          context.read<CartProvider>().addItem(product);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${product.name} dimasukkan ke keranjang'),
+                              duration: const Duration(seconds: 1),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          side: const BorderSide(color: AppColors.market),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_shopping_cart, size: 14, color: AppColors.market),
+                            SizedBox(width: 4),
+                            Text('Keranjang', style: TextStyle(fontSize: 11, color: AppColors.market, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -485,11 +583,38 @@ class _FilterSheet extends StatefulWidget {
 
 class _FilterSheetState extends State<_FilterSheet> {
   String? _condition;
+  int? _categoryId;
+  double? _minPrice;
+  double? _maxPrice;
+  String? _sortBy;
+  RangeValues _priceRange = const RangeValues(0, 10000000);
+
+  final _categories = {
+    1: 'Elektronik',
+    2: 'Fashion',
+    3: 'Rumah Tangga',
+    4: 'Olahraga',
+    5: 'Buku & Media',
+    6: 'Kesehatan & Kecantikan',
+    7: 'Otomotif',
+    8: 'Hobi & Koleksi',
+    9: 'Makanan & Minuman',
+    10: 'Lainnya',
+  };
 
   @override
   void initState() {
     super.initState();
-    _condition = context.read<MarketplaceProvider>().selectedCondition;
+    final p = context.read<MarketplaceProvider>();
+    _condition = p.selectedCondition;
+    _categoryId = p.selectedCategoryId;
+    _minPrice = p.minPrice;
+    _maxPrice = p.maxPrice;
+    _sortBy = p.sortBy;
+
+    double min = p.minPrice ?? 0;
+    double max = p.maxPrice ?? 10000000;
+    _priceRange = RangeValues(min, max);
   }
 
   @override
@@ -510,6 +635,37 @@ class _FilterSheetState extends State<_FilterSheet> {
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close)),
             ],
+          ),
+          const SizedBox(height: 16),
+          const Text('Kategori',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int?>(
+                isExpanded: true,
+                value: _categoryId,
+                hint: const Text('Semua Kategori', style: TextStyle(fontSize: 14)),
+                items: [
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('Semua Kategori', style: TextStyle(fontSize: 14)),
+                  ),
+                  ..._categories.entries.map(
+                    (e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(e.value, style: const TextStyle(fontSize: 14)),
+                    ),
+                  ),
+                ],
+                onChanged: (val) => setState(() => _categoryId = val),
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           const Text('Kondisi Barang',
@@ -551,6 +707,61 @@ class _FilterSheetState extends State<_FilterSheet> {
                   onTap: (v) => setState(() => _condition = v)),
             ],
           ),
+          const SizedBox(height: 16),
+          const Text('Rentang Harga',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(AppHelpers.formatPrice(_priceRange.start), style: const TextStyle(fontSize: 12, color: Colors.black54)),
+              Text(AppHelpers.formatPrice(_priceRange.end), style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            ],
+          ),
+          RangeSlider(
+            values: _priceRange,
+            min: 0,
+            max: 10000000,
+            divisions: 100,
+            activeColor: AppColors.market,
+            inactiveColor: AppColors.marketLight,
+            labels: RangeLabels(
+              AppHelpers.formatPrice(_priceRange.start),
+              AppHelpers.formatPrice(_priceRange.end),
+            ),
+            onChanged: (values) {
+              setState(() {
+                _priceRange = values;
+                _minPrice = values.start;
+                _maxPrice = values.end;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          const Text('Urutkan Berdasarkan',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ConditionChip(
+                  label: 'Terbaru',
+                  value: null,
+                  selected: _sortBy,
+                  onTap: (v) => setState(() => _sortBy = v)),
+              _ConditionChip(
+                  label: 'Termurah',
+                  value: 'price_asc',
+                  selected: _sortBy,
+                  onTap: (v) => setState(() => _sortBy = v)),
+              _ConditionChip(
+                  label: 'Termahal',
+                  value: 'price_desc',
+                  selected: _sortBy,
+                  onTap: (v) => setState(() => _sortBy = v)),
+            ],
+          ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -559,7 +770,13 @@ class _FilterSheetState extends State<_FilterSheet> {
               onPressed: () {
                 context
                     .read<MarketplaceProvider>()
-                    .setFilter(condition: _condition);
+                    .setFilter(
+                      condition: _condition, 
+                      categoryId: _categoryId,
+                      minPrice: _minPrice,
+                      maxPrice: _maxPrice,
+                      sortBy: _sortBy,
+                    );
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
