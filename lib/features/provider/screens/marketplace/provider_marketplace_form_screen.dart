@@ -95,11 +95,6 @@ class _ProviderMarketplaceFormScreenState
         MapEntry('category_id', _categoryId),
     ];
 
-    // Existing images yang masih dipertahankan
-    for (int i = 0; i < _existingImages.length; i++) {
-      fields.add(MapEntry('existing_images[$i]', _existingImages[i]));
-    }
-
     // Gambar baru
     final imageFiles = <MapEntry<String, MultipartFile>>[];
     for (int i = 0; i < _newImages.length; i++) {
@@ -122,6 +117,10 @@ class _ProviderMarketplaceFormScreenState
       _snack('Tambahkan minimal 1 foto produk.', isError: true);
       return;
     }
+    if (_categoryId == null) {
+    _snack('Pilih kategori produk terlebih dahulu.', isError: true);
+    return;
+  }
 
     final prov = context.read<ProviderMarketplaceProvider>();
     prov.clearMessages();
@@ -308,7 +307,7 @@ class _ProviderMarketplaceFormScreenState
 
                       const SizedBox(height: 16),
                       // ── KATEGORI ──────────────────────────
-                      _sectionLabel('Kategori'),
+                      _sectionLabel('Kategori*'),
                       const SizedBox(height: 8),
                       _buildCategoryDropdown(prov),
 

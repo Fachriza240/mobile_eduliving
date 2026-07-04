@@ -74,6 +74,7 @@ class ProviderBookingModel {
   final String? notes;
   final String? rejectionReason;
   final DateTime createdAt;
+  final List<String> documents;
 
   ProviderBookingModel({
     required this.id,
@@ -91,6 +92,7 @@ class ProviderBookingModel {
     this.notes,
     this.rejectionReason,
     required this.createdAt,
+    required this.documents,
   });
 
   factory ProviderBookingModel.fromJson(Map<String, dynamic> json) {
@@ -99,6 +101,18 @@ class ProviderBookingModel {
 
     final bookableTypeRaw = (json['bookable_type'] as String? ?? '').toLowerCase();
     final bookableType = bookableTypeRaw.contains('activity') ? 'activity' : 'residence';
+
+    final docList = <String>[];
+    if (json['documents'] != null && json['documents'] is List) {
+      for (final doc in (json['documents'] as List)) {
+        if (doc is Map) {
+          final url = doc['file_path'] ?? doc['url'] ?? doc['path'];
+          if (url != null) docList.add(url.toString());
+        } else if (doc != null) {
+          docList.add(doc.toString());
+        }
+      }
+    }
 
     return ProviderBookingModel(
       id              : json['id'] ?? 0,
@@ -116,6 +130,7 @@ class ProviderBookingModel {
       notes           : json['notes'],
       rejectionReason : json['rejection_reason'],
       createdAt       : _parseDate(json['created_at']) ?? DateTime.now(),
+      documents       : docList,
     );
   }
 
@@ -574,5 +589,49 @@ class ProviderMarketplaceOrderModel {
   static DateTime? _parseDate(dynamic v) {
     if (v == null) return null;
     try { return DateTime.parse(v.toString()); } catch (_) { return null; }
+  }
+}
+
+// ============================================================
+// SELLER DASHBOARD MODEL
+// ============================================================
+class SellerDashboardModel {
+  final int totalProducts;
+  final int totalOrders;
+  final int pendingOrders;
+  final int completedOrders;
+  final double totalRevenue;
+  final double monthlyRevenue;
+  final List<ProviderMarketplaceOrderModel> recentOrders;
+
+  SellerDashboardModel({
+    required this.totalProducts,
+    required this.totalOrders,
+    required this.pendingOrders,
+    required this.completedOrders,
+    required this.totalRevenue,
+    required this.monthlyRevenue,
+    required this.recentOrders,
+  });
+
+  factory SellerDashboardModel.fromJson(Map<String, dynamic> json) {
+    final recentList = json['recent_orders'] as List? ?? [];
+    return SellerDashboardModel(
+      totalProducts   : json['total_products'] ?? 0,
+      totalOrders     : json['total_orders'] ?? 0,
+      pendingOrders   : json['pending_orders'] ?? 0,
+      completedOrders : json['completed_orders'] ?? 0,
+      totalRevenue    : _toDouble(json['total_revenue']),
+      monthlyRevenue  : _toDouble(json['monthly_revenue']),
+      recentOrders    : recentList
+          .whereType<Map<String, dynamic>>()
+          .map((e) => ProviderMarketplaceOrderModel.fromJson(e))
+          .toList(),
+    );
+  }
+
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0;
+    return double.tryParse(v.toString()) ?? 0;
   }
 }

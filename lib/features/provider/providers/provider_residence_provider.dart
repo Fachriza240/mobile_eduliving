@@ -25,7 +25,7 @@ class ProviderResidenceProvider extends ChangeNotifier {
   String? get error => _error;
   String? get successMessage => _successMessage;
 
-  Future<void> loadResidences({bool refresh = false}) async {
+  Future<void> loadResidences({bool refresh = false, String? filterType}) async {
     if (refresh) {
       _currentPage = 1;
       _hasMore = true;
@@ -42,9 +42,11 @@ class ProviderResidenceProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final params = <String, dynamic>{'page': _currentPage};
+      if (filterType != null) params['residence_type'] = filterType;
       final res = await _api.get(
         ApiConstants.providerResidences,
-        queryParameters: {'page': _currentPage},
+        queryParameters: params,
       );
       final data = res['data'] as List? ?? [];
       final meta = res['meta'] as Map<String, dynamic>?;
