@@ -104,12 +104,17 @@ class _BookingListScreenState extends State<BookingListScreen>
                   itemCount: items.length,
                   itemBuilder: (ctx, i) => _BookingCard(
                     booking: items[i],
-                    onTap: () => Navigator.push(
-                      ctx,
-                      MaterialPageRoute(
-                        builder: (_) => BookingDetailScreen(booking: items[i]),
-                      ),
-                    ),
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        ctx,
+                        MaterialPageRoute(
+                          builder: (_) => BookingDetailScreen(booking: items[i]),
+                        ),
+                      );
+                      if (result == true) {
+                        prov.loadBookings();
+                      }
+                    },
                     onCancel: items[i].isCancellable
                         ? () => _confirmCancel(ctx, prov, items[i].id)
                         : null,

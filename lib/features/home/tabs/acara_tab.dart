@@ -549,8 +549,33 @@ class _AcaraSkelCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────
 // FILTER SHEET & CHIP
 // ─────────────────────────────────────────────────────
-class _FilterSheet extends StatelessWidget {
+class _FilterSheet extends StatefulWidget {
   const _FilterSheet();
+
+  @override
+  State<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends State<_FilterSheet> {
+  String _category = '';
+  String? _sortBy;
+  double? _minPrice;
+  double? _maxPrice;
+  RangeValues _priceRange = const RangeValues(0, 1000000);
+
+  @override
+  void initState() {
+    super.initState();
+    final p = context.read<ActivityProvider>();
+    _category = p.selectedCategory;
+    _sortBy = p.sortBy;
+    _minPrice = p.minPrice;
+    _maxPrice = p.maxPrice;
+
+    double min = p.minPrice ?? 0;
+    double max = p.maxPrice ?? 1000000;
+    _priceRange = RangeValues(min, max);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -591,49 +616,149 @@ class _FilterSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Consumer<ActivityProvider>(
-            builder: (context, p, _) {
-              return Wrap(
-                spacing: 8,
-                runSpacing: 10,
-                children: _kCategories.map((c) {
-                  final isSelected = p.selectedCategory == c['id'];
-                  return GestureDetector(
-                    onTap: () {
-                      p.setCategory(c['id']!);
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.activity
-                            : AppColors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.activity
-                              : AppColors.border,
-                        ),
-                      ),
-                      child: Text(
-                        c['label']!,
-                        style: TextStyle(
-                          color:
-                              isSelected ? Colors.white : AppColors.textPrimary,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w500,
-                          fontSize: 13,
-                        ),
-                      ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 10,
+            children: _kCategories.map((c) {
+              final isSelected = _category == c['id'];
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _category = c['id']!);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.activity
+                        : AppColors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.activity
+                          : AppColors.border,
                     ),
-                  );
-                }).toList(),
+                  ),
+                  child: Text(
+                    c['label']!,
+                    style: TextStyle(
+                      color:
+                          isSelected ? Colors.white : AppColors.textPrimary,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
               );
+            }).toList(),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Rentang Harga',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(formatRupiah(_priceRange.start), style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Text(formatRupiah(_priceRange.end), style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            ],
+          ),
+          RangeSlider(
+            values: _priceRange,
+            min: 0,
+            max: 1000000,
+            divisions: 50,
+            activeColor: AppColors.activity,
+            inactiveColor: AppColors.border,
+            labels: RangeLabels(
+              formatRupiah(_priceRange.start),
+              formatRupiah(_priceRange.end),
+            ),
+            onChanged: (values) {
+              setState(() {
+                _priceRange = values;
+                _minPrice = values.start;
+                _maxPrice = values.end;
+              });
             },
           ),
+          const SizedBox(height: 24),
+          const Text(
+            'Urutkan Berdasarkan',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 10,
+            children: [
+              _buildSortChip('Terbaru', null),
+              _buildSortChip('Termurah', 'price_asc'),
+              _buildSortChip('Termahal', 'price_desc'),
+              _buildSortChip('Rating Tertinggi', 'rating_desc'),
+            ],
+          ),
+          const SizedBox(height: 30),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () {
+                context.read<ActivityProvider>().setFilter(
+                      category: _category,
+                      sortBy: _sortBy,
+                      minPrice: _minPrice,
+                      maxPrice: _maxPrice,
+                    );
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.activity,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Terapkan Filter',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSortChip(String label, String? value) {
+    final isSelected = _sortBy == value;
+    return GestureDetector(
+      onTap: () => setState(() => _sortBy = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.activity : AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.activity : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppColors.textPrimary,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 13,
+          ),
+        ),
       ),
     );
   }

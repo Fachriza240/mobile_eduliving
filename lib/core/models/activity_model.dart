@@ -71,6 +71,29 @@ class ActivityModel {
       return [];
     }
 
+    double? parsedRatingAverage = json['average_rating'] != null
+        ? double.tryParse(json['average_rating'].toString())
+        : (json['rating_average'] != null
+            ? double.tryParse(json['rating_average'].toString())
+            : null);
+
+    List<dynamic> parsedRatings = json['ratings'] as List<dynamic>? ?? [];
+
+    if ((parsedRatingAverage == null || parsedRatingAverage == 0) &&
+        parsedRatings.isNotEmpty) {
+      double sum = 0;
+      int count = 0;
+      for (var r in parsedRatings) {
+        if (r is Map && r['rating'] != null) {
+          sum += double.tryParse(r['rating'].toString()) ?? 0;
+          count++;
+        }
+      }
+      if (count > 0) {
+        parsedRatingAverage = sum / count;
+      }
+    }
+
     return ActivityModel(
       id: json['id'] ?? 0,
       providerId: json['provider_id'] ?? 0,
@@ -103,12 +126,11 @@ class ActivityModel {
       isActive: json['is_active'] ?? true,
       provider: json['provider'] as Map<String, dynamic>?,
       category: json['category'] as Map<String, dynamic>?,
-      ratingAverage: json['rating_average'] != null
-          ? double.tryParse(json['rating_average'].toString())
-          : null,
-      ratingCount: json['rating_count'],
+      ratingAverage: parsedRatingAverage,
+      ratingCount: json['rating_count'] ??
+          (parsedRatings.isNotEmpty ? parsedRatings.length : 0),
       isBookmarked: json['is_bookmarked'] as bool?,
-      ratings: json['ratings'] as List<dynamic>? ?? [],
+      ratings: parsedRatings,
     );
   }
 

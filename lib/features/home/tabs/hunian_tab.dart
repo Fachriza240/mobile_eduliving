@@ -548,6 +548,10 @@ class _FilterSheet extends StatefulWidget {
 class _FilterSheetState extends State<_FilterSheet> {
   String _category = '';
   String? _kosType;
+  double? _minPrice;
+  double? _maxPrice;
+  String? _sortBy;
+  RangeValues _priceRange = const RangeValues(0, 5000000);
 
   @override
   void initState() {
@@ -555,6 +559,13 @@ class _FilterSheetState extends State<_FilterSheet> {
     final p = context.read<ResidenceProvider>();
     _category = p.selectedCategory;
     _kosType = p.selectedKosType;
+    _minPrice = p.minPrice;
+    _maxPrice = p.maxPrice;
+    _sortBy = p.sortBy;
+    
+    double min = p.minPrice ?? 0;
+    double max = p.maxPrice ?? 5000000;
+    _priceRange = RangeValues(min, max);
   }
 
   @override
@@ -655,6 +666,67 @@ class _FilterSheetState extends State<_FilterSheet> {
               ],
             ),
           ],
+          const SizedBox(height: 16),
+          const Text('Rentang Harga (Per Bulan)',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(formatRupiah(_priceRange.start), style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Text(formatRupiah(_priceRange.end), style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            ],
+          ),
+          RangeSlider(
+            values: _priceRange,
+            min: 0,
+            max: 5000000,
+            divisions: 50,
+            activeColor: AppColors.residence,
+            inactiveColor: AppColors.border,
+            labels: RangeLabels(
+              formatRupiah(_priceRange.start),
+              formatRupiah(_priceRange.end),
+            ),
+            onChanged: (values) {
+              setState(() {
+                _priceRange = values;
+                _minPrice = values.start;
+                _maxPrice = values.end;
+              });
+            },
+          ),
+          
+          const SizedBox(height: 16),
+          const Text('Urutkan Berdasarkan',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _FilterChipUI(
+                  label: 'Terbaru',
+                  value: null,
+                  selected: _sortBy,
+                  onTap: (v) => setState(() => _sortBy = v)),
+              _FilterChipUI(
+                  label: 'Termurah',
+                  value: 'price_asc',
+                  selected: _sortBy,
+                  onTap: (v) => setState(() => _sortBy = v)),
+              _FilterChipUI(
+                  label: 'Termahal',
+                  value: 'price_desc',
+                  selected: _sortBy,
+                  onTap: (v) => setState(() => _sortBy = v)),
+              _FilterChipUI(
+                  label: 'Rating Tertinggi',
+                  value: 'rating_desc',
+                  selected: _sortBy,
+                  onTap: (v) => setState(() => _sortBy = v)),
+            ],
+          ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -664,6 +736,9 @@ class _FilterSheetState extends State<_FilterSheet> {
                 context.read<ResidenceProvider>().setFilter(
                       category: _category,
                       kosType: _kosType,
+                      minPrice: _minPrice,
+                      maxPrice: _maxPrice,
+                      sortBy: _sortBy,
                     );
                 Navigator.pop(context);
               },

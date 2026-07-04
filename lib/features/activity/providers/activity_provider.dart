@@ -12,6 +12,9 @@ class ActivityProvider extends ChangeNotifier {
   String? _error;
   String _searchQuery = '';
   String _selectedCategory = '';
+  String? _sortBy;
+  double? _minPrice;
+  double? _maxPrice;
   int _currentPage = 1;
   bool _hasMore = true;
 
@@ -30,6 +33,35 @@ class ActivityProvider extends ChangeNotifier {
   bool get hasMore => _hasMore;
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
+  String? get sortBy => _sortBy;
+  double? get minPrice => _minPrice;
+  double? get maxPrice => _maxPrice;
+
+  // ── Setters ──────────────────────────────────────────
+  void setSearch(String q) {
+    if (_searchQuery == q) return;
+    _searchQuery = q;
+    loadActivities(refresh: true);
+  }
+
+  void setFilter({
+    String? category,
+    String? sortBy,
+    double? minPrice,
+    double? maxPrice,
+  }) {
+    if (category != null) _selectedCategory = category;
+    _sortBy = sortBy;
+    _minPrice = minPrice;
+    _maxPrice = maxPrice;
+    loadActivities(refresh: true);
+  }
+
+  void setCategory(String cat) {
+    if (_selectedCategory == cat) return;
+    _selectedCategory = cat;
+    loadActivities(refresh: true);
+  }
 
   // ── Load List ────────────────────────────────────────
   Future<void> loadActivities({bool refresh = false}) async {
@@ -57,7 +89,16 @@ class ActivityProvider extends ChangeNotifier {
         params['search'] = _searchQuery;
       }
       if (_selectedCategory.isNotEmpty) {
-        params['category'] = _selectedCategory;
+        params['category_id'] = _selectedCategory;
+      }
+      if (_sortBy != null) {
+        params['sort'] = _sortBy;
+      }
+      if (_minPrice != null) {
+        params['min_price'] = _minPrice;
+      }
+      if (_maxPrice != null) {
+        params['max_price'] = _maxPrice;
       }
 
       final res = await _api.get(
@@ -102,21 +143,12 @@ class ActivityProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Search ───────────────────────────────────────────
-  void setSearch(String query) {
-    _searchQuery = query;
-    loadActivities(refresh: true);
-  }
-
-  // ── Filter Kategori ──────────────────────────────────
-  void setCategory(String category) {
-    _selectedCategory = category;
-    loadActivities(refresh: true);
-  }
-
   void clearFilter() {
     _searchQuery = '';
     _selectedCategory = '';
+    _sortBy = null;
+    _minPrice = null;
+    _maxPrice = null;
     loadActivities(refresh: true);
   }
 

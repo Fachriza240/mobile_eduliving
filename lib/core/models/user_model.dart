@@ -5,6 +5,7 @@ class UserModel {
   final String? phone;
   final String? address;
   final String? profilePicture;
+  final DateTime? createdAt;
   final bool isActive;
   final List<String> roles;
   // ── Seller fields dari backend ────────────────────
@@ -19,6 +20,7 @@ class UserModel {
     this.phone,
     this.address,
     this.profilePicture,
+    this.createdAt,
     required this.isActive,
     required this.roles,
     this.isSeller = false,
@@ -46,6 +48,7 @@ class UserModel {
       phone: json['phone'],
       address: json['address'],
       profilePicture: json['profile_picture'],
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
       isActive: json['is_active'] ?? true,
       roles: roleList,
       isSeller: sellerVal,  
@@ -123,6 +126,7 @@ bool get isProviderMarketplace =>
       phone: phone ?? this.phone,
       address: address ?? this.address,
       profilePicture: profilePicture ?? this.profilePicture,
+      createdAt: this.createdAt,
       isActive: isActive,
       roles: roles,
       isSeller: isSeller ?? this.isSeller,

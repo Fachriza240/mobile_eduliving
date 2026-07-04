@@ -4,6 +4,7 @@ import '../providers/marketplace_provider.dart';
 import '../models/marketplace_model.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/app_helpers.dart';
+import 'transaction_detail_screen.dart';
 
 class TransactionListScreen extends StatefulWidget {
   const TransactionListScreen({super.key});
@@ -128,8 +129,11 @@ class _TransactionCard extends StatelessWidget {
 
   const _TransactionCard({required this.tx});
 
-  Color _statusColor(String status) {
-    switch (status) {
+  Color _statusColor(MarketplaceTransactionModel tx) {
+    if (tx.status == 'pending' && tx.paymentStatus == 'paid') {
+      return Colors.blue; // payment_uploaded
+    }
+    switch (tx.status) {
       case 'pending':
         return Colors.orange;
       case 'payment_uploaded':
@@ -149,19 +153,28 @@ class _TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Padding(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => TransactionDetailScreen(transactionId: tx.id)),
+        ).then((_) {
+          context.read<MarketplaceTransactionProvider>().fetchTransactions();
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2))
+          ],
+        ),
+        child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,13 +192,13 @@ class _TransactionCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: _statusColor(tx.status).withOpacity(0.1),
+                    color: _statusColor(tx).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     tx.statusLabel,
                     style: TextStyle(
-                        color: _statusColor(tx.status),
+                        color: _statusColor(tx),
                         fontSize: 11,
                         fontWeight: FontWeight.w600),
                   ),
@@ -231,13 +244,20 @@ class _TransactionCard extends StatelessWidget {
             ),
 
             // Aksi (upload bukti bayar jika pending)
-            if (tx.status == 'pending') ...[
+            if (tx.status == 'pending' && tx.paymentStatus != 'paid') ...[
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 height: 38,
                 child: ElevatedButton.icon(
-                  onPressed: () => _uploadPaymentProof(context),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => TransactionDetailScreen(transactionId: tx.id)),
+                    ).then((_) {
+                      context.read<MarketplaceTransactionProvider>().fetchTransactions();
+                    });
+                  },
                   icon: const Icon(Icons.upload_outlined, size: 16),
                   label: const Text('Upload Bukti Bayar',
                       style: TextStyle(fontSize: 13)),
@@ -253,14 +273,8 @@ class _TransactionCard extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 
-  void _uploadPaymentProof(BuildContext context) {
-    // Gunakan image_picker lalu panggil provider.uploadPaymentProof
-    // Implementasi sama seperti di modul booking (sudah ada pattern-nya)
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fitur upload bukti bayar segera hadir')),
-    );
-  }
+
 }

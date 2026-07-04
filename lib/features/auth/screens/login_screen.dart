@@ -237,8 +237,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: 1.5,
               ),
             ),
-            child:
-                const Icon(Icons.school_rounded, size: 42, color: Colors.white),
+            child: Image.asset(
+              'assets/images/Infoma_Branding.png',
+              width: 76,
+              height: 76,
+              errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.school_rounded, size: 42, color: Colors.white),
+            ),
           ),
           const SizedBox(height: 16),
           const Text(

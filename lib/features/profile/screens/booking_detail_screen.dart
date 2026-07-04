@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/api_constants.dart';
@@ -25,6 +26,32 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   File? _paymentProofFile;
   String? _paymentProofName;
   bool _isPaymentLoading = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    if (booking.status == 'approved' &&
+        booking.paymentDeadline != null &&
+        !booking.paymentExpired &&
+        (booking.transaction == null ||
+            booking.transaction!['payment_status'] == 'pending' ||
+            booking.transaction!['payment_status'] == 'unpaid')) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {}); // refresh UI for countdown
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +61,22 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
+            if (booking.status == 'approved' &&
+                booking.paymentDeadline != null &&
+                !booking.paymentExpired &&
+                (booking.transaction == null ||
+                    booking.transaction!['payment_status'] == 'pending' ||
+                    booking.transaction!['payment_status'] == 'unpaid')) ...[
+              _buildPaymentCountdown(),
+              const SizedBox(height: 8),
+            ],
             _buildStatusCard(),
             const SizedBox(height: 8),
             _buildItemCard(),
             const SizedBox(height: 8),
             _buildPemesanCard(),
             const SizedBox(height: 8),
-            if (booking.isResidence) ...[
+            if (booking.isResidence && (booking.startDate != null || booking.endDate != null)) ...[
               _buildDateCard(),
               const SizedBox(height: 8),
             ],
@@ -51,11 +87,177 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             ],
             if (booking.status == 'approved') ...[
               const SizedBox(height: 8),
-              _buildPaymentSection(),
+              if (booking.transaction != null &&
+                  booking.transaction!['payment_status'] != 'pending' &&
+                  booking.transaction!['payment_status'] != 'unpaid')
+                _buildPaidSection()
+              else
+                _buildPaymentSection(),
             ],
             const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentCountdown() {
+    if (booking.paymentDeadline == null) return const SizedBox();
+    
+    final now = DateTime.now();
+    final diff = booking.paymentDeadline!.difference(now);
+    
+    if (diff.isNegative) {
+      return const SizedBox(); // Harusnya dihandle backend jika expired
+    }
+
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String hours = twoDigits(diff.inHours);
+    String minutes = twoDigits(diff.inMinutes.remainder(60));
+    String seconds = twoDigits(diff.inSeconds.remainder(60));
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF7ED), // orange-50
+          border: Border.all(color: const Color(0xFFFED7AA)), // orange-200
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.access_time_filled, color: Color(0xFFF59E0B), size: 20), // orange-500
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Segera Lakukan Pembayaran!',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFD97706))), // orange-600
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B), // orange-500
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text('Bayar Sekarang',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Booking kamu telah disetujui. Selesaikan pembayaran sebelum batas waktu habis, atau booking akan dibatalkan otomatis.',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: Color(0xFFB45309)), // orange-700
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text('Sisa waktu: ',
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        color: Color(0xFFB45309))), // orange-700
+                Text(
+                  '$hours:$minutes:$seconds',
+                  style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF92400E)), // orange-800
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Batas akhir: ${formatDateWithTime(booking.paymentDeadline)}',
+              style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 11,
+                  color: Color(0xFFD97706))), // orange-600
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaidSection() {
+    final method = booking.transaction?['payment_method'] ?? 'Transfer Bank';
+    final status = booking.transaction?['payment_status'] ?? 'paid';
+    
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Icon(Icons.receipt_long_outlined,
+                color: AppColors.primary, size: 20),
+            const SizedBox(width: 8),
+            const Text('Informasi Pembayaran',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700)),
+          ]),
+          const SizedBox(height: 14),
+          InfoRow(
+            icon: Icons.payments_outlined,
+            label: 'Metode Pembayaran',
+            value: method.toString().replaceAll('_', ' ').toUpperCase(),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, size: 18, color: AppColors.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Status Pembayaran',
+                          style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 11,
+                              color: AppColors.textHint)),
+                      const SizedBox(height: 2),
+                      Text(status.toString().toUpperCase(),
+                          style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: status == 'paid' ? AppColors.success : AppColors.warning)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (booking.transaction?['payment_proof'] != null)
+            const InfoRow(
+              icon: Icons.image_outlined,
+              label: 'Bukti Pembayaran',
+              value: 'Terlampir',
+            ),
+        ],
       ),
     );
   }
@@ -334,7 +536,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => RatingScreen(booking: booking),
+                  builder: (_) => RatingScreen(
+                    isResidence: booking.isResidence,
+                    rateableId: booking.bookable?['id'] ?? 0,
+                    rateableName: booking.bookableName,
+                  ),
                 ),
               ),
               icon: const Icon(Icons.star_outline_rounded, size: 18),
@@ -605,7 +811,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           InfoRow(
               icon: Icons.calendar_today_outlined,
               label: 'Tanggal Pesan',
-              value: formatDate(booking.createdAt)),
+              value: formatDateWithTime(booking.createdAt)),
           // Info peserta untuk booking acara
           if (booking.isActivity) ...[
             const SizedBox(height: 16),
@@ -809,7 +1015,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   String _paymentLabel() {
     switch (booking.status) {
       case 'approved':
-        return 'Pembayaran Dikonfirmasi';
+        final isPaid = booking.transaction != null && 
+                       booking.transaction!['payment_status'] != 'pending' && 
+                       booking.transaction!['payment_status'] != 'unpaid';
+        return isPaid ? 'Pembayaran Dikonfirmasi' : 'Menunggu Pembayaran';
       case 'completed':
         return 'Transaksi Selesai';
       case 'cancelled':
@@ -824,7 +1033,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   String _paymentDesc() {
     switch (booking.status) {
       case 'approved':
-        return 'Pemesanan Anda telah disetujui provider.';
+        final isPaid = booking.transaction != null && 
+                       booking.transaction!['payment_status'] != 'pending' && 
+                       booking.transaction!['payment_status'] != 'unpaid';
+        return isPaid 
+            ? 'Pemesanan Anda telah disetujui provider.' 
+            : 'Silakan lakukan pembayaran sebelum batas waktu.';
       case 'completed':
         return 'Terima kasih telah menggunakan EduLiving.';
       case 'cancelled':

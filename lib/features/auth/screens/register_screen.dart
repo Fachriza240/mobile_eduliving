@@ -262,7 +262,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Buat Akun'),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/Infoma_Branding-blue.png',
+              width: 28,
+              height: 28,
+              errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.school_rounded, color: AppColors.primary, size: 24),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'EduLiving',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 19),
           onPressed: () => Navigator.pop(context),

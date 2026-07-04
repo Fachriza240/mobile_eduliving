@@ -17,6 +17,9 @@ class MarketplaceProvider extends ChangeNotifier {
   String _searchQuery = '';
   int? _selectedCategoryId;
   String? _selectedCondition; // new | used | null
+  double? _minPrice;
+  double? _maxPrice;
+  String? _sortBy;
 
   List<MarketplaceProductModel> get products => _products;
   bool get isLoading => _isLoading;
@@ -26,6 +29,9 @@ class MarketplaceProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   int? get selectedCategoryId => _selectedCategoryId;
   String? get selectedCondition => _selectedCondition;
+  double? get minPrice => _minPrice;
+  double? get maxPrice => _maxPrice;
+  String? get sortBy => _sortBy;
 
   // Sentinel untuk membedakan 'tidak dikirim' vs 'set ke null'
   static const _sentinel = Object();
@@ -34,10 +40,16 @@ class MarketplaceProvider extends ChangeNotifier {
     String? search,
     Object? categoryId = _sentinel,
     Object? condition = _sentinel,
+    Object? minPrice = _sentinel,
+    Object? maxPrice = _sentinel,
+    Object? sortBy = _sentinel,
   }) {
     if (search != null) _searchQuery = search;
     if (categoryId != _sentinel) _selectedCategoryId = categoryId as int?;
     if (condition != _sentinel) _selectedCondition = condition as String?;
+    if (minPrice != _sentinel) _minPrice = minPrice as double?;
+    if (maxPrice != _sentinel) _maxPrice = maxPrice as double?;
+    if (sortBy != _sentinel) _sortBy = sortBy as String?;
     fetchProducts(reset: true);
   }
 
@@ -45,6 +57,9 @@ class MarketplaceProvider extends ChangeNotifier {
     _searchQuery = '';
     _selectedCategoryId = null;
     _selectedCondition = null;
+    _minPrice = null;
+    _maxPrice = null;
+    _sortBy = null;
     fetchProducts(reset: true);
   }
 
@@ -69,6 +84,9 @@ class MarketplaceProvider extends ChangeNotifier {
         if (_searchQuery.isNotEmpty) 'search': _searchQuery,
         if (_selectedCategoryId != null) 'category_id': _selectedCategoryId,
         if (_selectedCondition != null) 'condition': _selectedCondition,
+        if (_minPrice != null) 'min_price': _minPrice,
+        if (_maxPrice != null) 'max_price': _maxPrice,
+        if (_sortBy != null) 'sort': _sortBy,
       };
 
       final response =
@@ -150,27 +168,35 @@ class MarketplaceTransactionProvider extends ChangeNotifier {
 
   Future<Map<String, dynamic>> buyProduct(
       int productId, Map<String, dynamic> payload) async {
-    final response =
-        await _api.dio.post('/user/transactions/$productId', data: payload);
-    return response.data;
+    final response = await _api.post('/user/transactions/$productId', data: payload);
+    return response;
   }
 
-  Future<void> cancelTransaction(int id) async {
-    await _api.dio.patch('/user/transactions/$id/cancel');
+  Future<void> cancelTransaction(int id, String reason) async {
+    final formData = FormData.fromMap({
+      '_method': 'PATCH',
+      'cancellation_reason': reason,
+    });
+    await _api.post(
+      '/user/transactions/$id/cancel', 
+      formData: formData,
+    );
     await fetchTransactions();
   }
 
-  Future<void> uploadPaymentProof(int id, String filePath) async {
+  Future<void> uploadPaymentProof(int id, String filePath, String paymentMethod) async {
     final formData = FormData.fromMap({
+      'payment_method': paymentMethod,
       'payment_proof': await MultipartFile.fromFile(
         filePath,
         filename: 'proof_${DateTime.now().millisecondsSinceEpoch}.jpg',
       ),
     });
-    await _api.dio.post(
+    // Add _method spoofing for PUT if the backend expects it, though post is used.
+    // wait, we used _api.post with formData before in BookingProvider.
+    await _api.post(
       '/user/transactions/$id/payment-proof',
-      data: formData,
-      options: Options(contentType: 'multipart/form-data'),
+      formData: formData,
     );
     await fetchTransactions();
   }
