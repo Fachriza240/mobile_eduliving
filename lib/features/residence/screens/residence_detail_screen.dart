@@ -8,6 +8,7 @@ import '../providers/residence_provider.dart';
 import 'residence_booking_screen.dart';
 import '../../profile/screens/rating_screen.dart';
 import '../../bookmark/providers/bookmark_provider.dart';
+import '../../profile/providers/booking_provider.dart';
 
 class ResidenceDetailScreen extends StatefulWidget {
   final int id;
@@ -25,8 +26,12 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) =>
-        context.read<ResidenceProvider>().loadResidenceDetail(widget.id));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ResidenceProvider>().loadResidenceDetail(widget.id);
+      if (context.read<AuthProvider>().isAuthenticated) {
+        context.read<BookingProvider>().loadBookings();
+      }
+    });
   }
 
   @override
@@ -160,12 +165,64 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
               ),
               const SizedBox(height: 8),
               _section('Ulasan & Penilaian', _buildRatings(r)),
+              // Tombol Beri Ulasan — muncul jika user sudah bayar
+              if (isLoggedIn && _hasPaidBooking(r.id)) ...[
+                const SizedBox(height: 8),
+                Container(
+                  color: AppColors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.residence,
+                        side: const BorderSide(color: AppColors.residence),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RatingScreen(
+                            isResidence: true,
+                            rateableId: r.id,
+                            rateableName: r.name,
+                          ),
+                        ),
+                      ).then((_) =>
+                          context.read<ResidenceProvider>().loadResidenceDetail(r.id)),
+                      icon: const Icon(Icons.star_border_rounded, size: 18),
+                      label: const Text('Beri Ulasan',
+                          style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
             ],
           ),
         ),
       ],
     );
+  }
+
+  /// Cek apakah user punya booking yang sudah dibayar untuk hunian ini
+  bool _hasPaidBooking(int residenceId) {
+    try {
+      final bookingProv = context.read<BookingProvider>();
+      return bookingProv.allBookings.any((b) {
+        final paymentStatus = b.transaction?['payment_status'] ?? '';
+        return b.isResidence &&
+            b.bookableId == residenceId &&
+            (paymentStatus == 'paid' || b.status == 'completed');
+      });
+    } catch (_) {
+      return false;
+    }
   }
 
   Widget _buildMainInfo(ResidenceModel r, bool isLoggedIn) {
@@ -291,6 +348,42 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
       onPressed: () {
         if (!isLoggedIn) {
           _loginRequired();
+          return;
+        }
+
+        final bookingProv = context.read<BookingProvider>();
+        final hasActive = bookingProv.allBookings.any((b) =>
+            b.isResidence &&
+            b.bookableId == r.id &&
+            (b.status == 'pending' || b.status == 'approved'));
+
+        if (r.hasActiveBooking || hasActive) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              backgroundColor: const Color(0xFF333333),
+              content: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: Colors.white, size: 24),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Anda sudah memiliki booking aktif untuk hunian ini. Selesaikan atau batalkan booking sebelumnya terlebih dahulu.',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          color: Colors.white,
+                          height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
           return;
         }
         Navigator.push(

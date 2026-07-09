@@ -22,6 +22,7 @@ class ResidenceModel {
   final int? ratingCount;
   final bool? isBookmarked;
   final List<dynamic> ratings;
+  final bool hasActiveBooking;
 
   // Additional detail fields
   final String? residenceType;
@@ -60,6 +61,7 @@ class ResidenceModel {
     this.ratingCount,
     this.isBookmarked,
     this.ratings = const [],
+    this.hasActiveBooking = false,
     this.residenceType,
     this.kosType,
     this.roomSize,
@@ -134,6 +136,7 @@ class ResidenceModel {
           (parsedRatings.isNotEmpty ? parsedRatings.length : 0),
       isBookmarked: json['is_bookmarked'] as bool?,
       ratings: parsedRatings,
+      hasActiveBooking: json['has_active_booking'] as bool? ?? false,
       residenceType: json['residence_type'],
       kosType: json['kos_type'],
       roomSize: json['room_size'] != null

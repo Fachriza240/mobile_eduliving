@@ -21,6 +21,7 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   MarketplaceProductModel? _product;
+  List<MarketplaceProductModel> _relatedProducts = [];
   bool _isLoading = true;
   int _currentImageIndex = 0;
 
@@ -31,11 +32,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _load() async {
-    final p =
-        await context.read<MarketplaceProvider>().fetchDetail(widget.productId);
+    final res = await context
+        .read<MarketplaceProvider>()
+        .fetchDetailData(widget.productId);
     if (mounted) {
       setState(() {
-        _product = p;
+        if (res != null) {
+          _product = res['product'];
+          _relatedProducts = res['related_products'] ?? [];
+        }
         _isLoading = false;
       });
     }
@@ -258,7 +263,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      if (product.tags.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: product.tags.map((t) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.market.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '#$t',
+                                style: const TextStyle(
+                                  color: AppColors.market,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
                       Text(
                         AppHelpers.formatPrice(product.price),
                         style: TextStyle(
@@ -277,6 +306,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             'Stok: ${product.stockQuantity}',
                             style: TextStyle(
                                 fontSize: 13, color: Colors.grey[600]),
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(Icons.visibility_outlined, size: 14, color: Colors.grey[500]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Dilihat: ${product.viewsCount}x',
+                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                           ),
                           const SizedBox(width: 16),
                           Container(
@@ -301,6 +337,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ],
                       ),
+                      if (product.location != null && product.location!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on_outlined, size: 14, color: Colors.grey[500]),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                product.location!,
+                                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -335,42 +388,94 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               style: const TextStyle(
                                   fontWeight: FontWeight.w600, fontSize: 14),
                             ),
-                            Text(
-                              'Penjual',
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.grey[500]),
-                            ),
+                            if (product.seller.createdAt != null)
+                              Text(
+                                'Anggota sejak ${product.seller.createdAt!.year}',
+                                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                              )
+                            else
+                              Text(
+                                'Penjual',
+                                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                              ),
+                            const SizedBox(height: 2),
+                            if (product.seller.lastSeenAt != null && DateTime.now().difference(product.seller.lastSeenAt!).inMinutes < 5)
+                              const Text('Online', style: TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w500))
+                            else if (product.seller.lastSeenAt != null)
+                              Text('Terakhir online ${product.seller.lastSeenAt!.day}/${product.seller.lastSeenAt!.month}/${product.seller.lastSeenAt!.year}', style: TextStyle(fontSize: 12, color: Colors.grey[500]))
+                            else
+                              Text('Belum pernah online', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                           ],
                         ),
                       ),
-                      if (product.seller.phone != null)
-                        GestureDetector(
-                          onTap: () => AppHelpers.openWhatsApp(
-                              context,
-                              product.seller.phone!,
-                              'Halo, saya tertarik dengan produk "${product.name}"'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (product.seller.phone != null) ...[
+                            GestureDetector(
+                              onTap: () => AppHelpers.openWhatsApp(
+                                  context,
+                                  product.seller.phone!,
+                                  'Halo, saya tertarik dengan produk "${product.name}"'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.chat_outlined, size: 14, color: Colors.green),
+                                    SizedBox(width: 4),
+                                    Text('Chat', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w500)),
+                                  ],
+                                ),
+                              ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(Icons.chat_outlined,
-                                    size: 14, color: Colors.green),
-                                SizedBox(width: 4),
-                                Text('Chat',
-                                    style: TextStyle(
-                                        color: Colors.green,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500)),
-                              ],
-                            ),
-                          ),
-                        ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Informasi Produk
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Informasi Produk',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 2, child: Text('Kondisi', style: TextStyle(color: Colors.grey.shade600, fontSize: 13))),
+                          Expanded(flex: 3, child: Text(product.conditionLabel, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 2, child: Text('Kategori', style: TextStyle(color: Colors.grey.shade600, fontSize: 13))),
+                          Expanded(flex: 3, child: Text(product.category?.name ?? 'Umum', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.market))),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 2, child: Text('Dikirim Dari', style: TextStyle(color: Colors.grey.shade600, fontSize: 13))),
+                          Expanded(flex: 3, child: Text(product.location ?? '-', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -412,7 +517,98 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 100), // ruang untuk bottom bar
+                const SizedBox(height: 8),
+
+                if (_relatedProducts.isNotEmpty)
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Produk Terkait', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 230,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _relatedProducts.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            itemBuilder: (context, index) {
+                              final related = _relatedProducts[index];
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => ProductDetailScreen(productId: related.id)),
+                                  );
+                                },
+                                child: Container(
+                                  width: 140,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                        child: EduImage(
+                                          path: related.firstImage,
+                                          height: 110,
+                                          width: double.infinity,
+                                          placeholderIcon: Icons.storefront_outlined,
+                                          placeholderColor: AppColors.marketLight,
+                                          iconColor: AppColors.market,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                related.name,
+                                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                AppHelpers.formatPrice(related.price),
+                                                style: const TextStyle(color: AppColors.market, fontWeight: FontWeight.bold, fontSize: 13),
+                                              ),
+                                              const Spacer(),
+                                              Row(
+                                                children: [
+                                                  const Icon(Icons.star, color: Colors.amber, size: 12),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    related.averageRating > 0 ? related.averageRating.toStringAsFixed(1) : '0.0',
+                                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 24),
               ],
             ),
           ),

@@ -36,6 +36,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     _quantity = widget.quantity;
+    if (widget.product.pickupMethods.isNotEmpty) {
+      _pickupMethod = widget.product.pickupMethods.first;
+    }
     
     // Auto-fill user data
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -309,55 +312,92 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       const Text('Penjual hanya menyediakan metode berikut:', style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textSecondary)),
                       const SizedBox(height: 12),
                       
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange.shade200),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Radio<String>(
-                              value: 'pickup',
-                              groupValue: _pickupMethod,
-                              onChanged: (val) {
-                                if (val != null) setState(() => _pickupMethod = val);
-                              },
-                              activeColor: Colors.orange,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            Expanded(
-                              child: Column(
+                      Column(
+                        children: widget.product.pickupMethods.map((method) {
+                          String title = '';
+                          String desc = '';
+                          IconData icon = Icons.local_shipping;
+                          Color themeColor = Colors.grey;
+                          
+                          if (method == 'cod') {
+                            title = 'COD (Bayar di Tempat)';
+                            desc = 'Pembeli bertemu dengan penjual, bayar langsung saat menerima barang.';
+                            icon = Icons.money_outlined;
+                            themeColor = Colors.green;
+                          } else if (method == 'delivery') {
+                            title = 'Diantar Seller';
+                            desc = 'Penjual mengantar barang ke alamat pembeli. Pembeli transfer terlebih dahulu.';
+                            icon = Icons.motorcycle_outlined;
+                            themeColor = Colors.blue;
+                          } else {
+                            title = 'Ambil Sendiri';
+                            desc = 'Pembeli datang langsung ke lokasi penjual untuk mengambil barang.';
+                            icon = Icons.directions_walk;
+                            themeColor = Colors.orange;
+                          }
+
+                          final isSelected = _pickupMethod == method;
+                          
+                          return GestureDetector(
+                            onTap: () => setState(() => _pickupMethod = method),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12.0),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? themeColor.withValues(alpha: 0.05) : Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected ? themeColor : AppColors.border,
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.directions_walk, color: Colors.orange, size: 16),
-                                      const SizedBox(width: 6),
-                                      const Text('Ambil Sendiri', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 13, color: Colors.orange)),
-                                    ],
+                                  Radio<String>(
+                                    value: method,
+                                    groupValue: _pickupMethod,
+                                    onChanged: (val) {
+                                      if (val != null) setState(() => _pickupMethod = val);
+                                    },
+                                    activeColor: themeColor,
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  const SizedBox(height: 4),
-                                  const Text('Pembeli datang langsung ke lokasi penjual untuk mengambil barang.', style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textSecondary)),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(Icons.location_on, color: Colors.orange, size: 14),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text('Alamat pengambilan: ${widget.product.seller.address ?? 'Lihat di detail lokasi penjual'}',
-                                            style: const TextStyle(fontFamily: 'Poppins', fontSize: 11, color: Colors.orange)),
-                                      ),
-                                    ],
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(icon, color: isSelected ? themeColor : AppColors.textPrimary, size: 16),
+                                            const SizedBox(width: 6),
+                                            Text(title, style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 13, color: isSelected ? themeColor : AppColors.textPrimary)),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(desc, style: const TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textSecondary)),
+                                        if (method == 'pickup') ...[
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Icon(Icons.location_on, color: isSelected ? themeColor : AppColors.textSecondary, size: 14),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text('Alamat: ${widget.product.seller.address ?? 'Tanya penjual'}',
+                                                    style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: isSelected ? themeColor : AppColors.textSecondary)),
+                                              ),
+                                            ],
+                                          )
+                                        ]
+                                      ],
+                                    ),
                                   )
                                 ],
                               ),
-                            )
-                          ],
-                        ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                       
                       const SizedBox(height: 16),
