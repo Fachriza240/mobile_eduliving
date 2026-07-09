@@ -264,6 +264,19 @@ class ProviderResidenceModel {
   String get mainImage => images.isNotEmpty ? images.first : '';
   bool get hasDiscount => discountType != null && (discountValue ?? 0) > 0;
 
+  String get rentalPeriodShort {
+    switch (rentalPeriod) {
+      case 'monthly':
+        return 'bln';
+      case 'yearly':
+        return 'thn';
+      case 'daily':
+        return 'hari';
+      default:
+        return 'bln';
+    }
+  }
+
   static List<String> _toList(dynamic v) {
     if (v == null) return [];
     if (v is List) return v.map((e) => e.toString()).toList();
@@ -428,6 +441,9 @@ class ProviderMarketplaceProductModel {
   final int? categoryId;
   final int ordersCount;
   final DateTime createdAt;
+  final List<String> pickupMethods; // cod | delivery | pickup
+  final String? pickupAddress;
+
 
   ProviderMarketplaceProductModel({
     required this.id,
@@ -445,6 +461,8 @@ class ProviderMarketplaceProductModel {
     this.categoryId,
     required this.ordersCount,
     required this.createdAt,
+    this.pickupMethods = const [],
+    this.pickupAddress,  
   });
 
   String get firstImage => images.isNotEmpty ? images.first : '';
@@ -468,6 +486,7 @@ class ProviderMarketplaceProductModel {
       categoryId     : json['category_id'],
       ordersCount    : json['orders_count'] ?? json['transactions_count'] ?? 0,
       createdAt      : _parseDate(json['created_at']) ?? DateTime.now(),
+      pickupMethods  : _toList(json['pickup_methods']),
     );
   }
 
@@ -518,7 +537,7 @@ class ProviderMarketplaceOrderModel {
     required this.buyerPhone,
     required this.buyerAddress,
     required this.pickupMethod,
-    this.pickupAddress,
+    required this.pickupAddress,
     this.pickupNotes,
     required this.paymentMethod,
     this.paymentProofUrl,

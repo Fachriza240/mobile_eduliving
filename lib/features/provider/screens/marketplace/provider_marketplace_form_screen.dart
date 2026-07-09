@@ -31,11 +31,46 @@ class _ProviderMarketplaceFormScreenState
   final _stockCtrl = TextEditingController();
   final _conditionNotesCtrl = TextEditingController();
 
+
   // State
   String _condition = 'used';
   int? _categoryId;
   List<XFile> _newImages = [];
   List<String> _existingImages = [];
+
+  final _pickupAddressCtrl = TextEditingController();
+  List<String> _pickupMethods = [];
+  bool _showPickupMethodWarning = false;
+
+  static final List<_PickupMethodMeta> _pickupMethodOptions = [
+  _PickupMethodMeta(
+    key: 'cod',
+    label: 'COD (Bayar di Tempat)',
+    description: 'Pembeli bertemu dengan penjual, bayar langsung saat menerima barang.',
+    icon: Icons.payments_outlined,
+    color: const Color(0xFF16A34A), // hijau
+    surface: const Color(0xFFF0FDF4),
+    needAddress: false,
+  ),
+  _PickupMethodMeta(
+    key: 'delivery',
+    label: 'Diantar Seller',
+    description: 'Penjual mengantar barang ke alamat pembeli. Pembeli transfer terlebih dahulu.',
+    icon: Icons.two_wheeler_outlined,
+    color: const Color(0xFF2563EB), // biru
+    surface: const Color(0xFFEFF6FF),
+    needAddress: true,
+  ),
+  _PickupMethodMeta(
+    key: 'pickup',
+    label: 'Ambil Sendiri',
+    description: 'Pembeli datang langsung ke lokasi penjual untuk mengambil barang.',
+    icon: Icons.directions_walk_outlined,
+    color: AppColors.market, // oranye
+    surface: AppColors.marketLight,
+    needAddress: false,
+  ),
+];
 
   bool get _isEdit => widget.product != null;
 
@@ -59,6 +94,8 @@ class _ProviderMarketplaceFormScreenState
     _condition = p.condition;
     _categoryId = p.categoryId;
     _existingImages = List.from(p.images);
+    _pickupMethods = List.from(p.pickupMethods);
+    _pickupAddressCtrl.text = p.pickupAddress ?? '';  
   }
 
   @override
@@ -68,6 +105,7 @@ class _ProviderMarketplaceFormScreenState
     _priceCtrl.dispose();
     _stockCtrl.dispose();
     _conditionNotesCtrl.dispose();
+    _pickupAddressCtrl.dispose();
     super.dispose();
   }
 
@@ -82,6 +120,17 @@ class _ProviderMarketplaceFormScreenState
     setState(() => _newImages.addAll(picked.take(10 - total)));
   }
 
+  void _togglePickupMethod(String key) {
+  setState(() {
+    if (_pickupMethods.contains(key)) {
+      _pickupMethods.remove(key);
+    } else {
+      _pickupMethods.add(key);
+    }
+    if (_pickupMethods.isNotEmpty) _showPickupMethodWarning = false;
+  });
+ }
+
   Future<FormData> _buildFormData() async {
     final fields = <MapEntry<String, dynamic>>[
       MapEntry('name', _nameCtrl.text.trim()),
@@ -93,6 +142,10 @@ class _ProviderMarketplaceFormScreenState
         MapEntry('condition_notes', _conditionNotesCtrl.text.trim()),
       if (_categoryId != null)
         MapEntry('category_id', _categoryId),
+        for (int i = 0; i < _pickupMethods.length; i++)
+      MapEntry('pickup_methods[$i]', _pickupMethods[i]),
+    if (_pickupMethods.contains('pickup'))
+      MapEntry('pickup_address', _pickupAddressCtrl.text.trim()),
     ];
 
     // Gambar baru
@@ -120,7 +173,18 @@ class _ProviderMarketplaceFormScreenState
     if (_categoryId == null) {
     _snack('Pilih kategori produk terlebih dahulu.', isError: true);
     return;
-  }
+    }
+    if (_pickupMethods.isEmpty) {
+      setState(() => _showPickupMethodWarning = true);
+      _snack('Pilih minimal satu metode pengambilan.', isError: true);
+      return;
+    }
+    if (_pickupMethods.contains('pickup') &&
+        _pickupAddressCtrl.text.trim().isEmpty) {
+      _snack('Isi alamat pengambilan barang untuk metode "Ambil Sendiri".',
+          isError: true);
+      return;
+    }
 
     final prov = context.read<ProviderMarketplaceProvider>();
     prov.clearMessages();
@@ -310,6 +374,19 @@ class _ProviderMarketplaceFormScreenState
                       _sectionLabel('Kategori*'),
                       const SizedBox(height: 8),
                       _buildCategoryDropdown(prov),
+                      const SizedBox(height: 20),
+                      _sectionLabel('Metode Pengambilan *'),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tentukan bagaimana pembeli bisa mendapatkan barangmu',
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildPickupMethodsSection(),
 
                       const SizedBox(height: 80),
                     ],
@@ -417,6 +494,158 @@ class _ProviderMarketplaceFormScreenState
           borderSide: const BorderSide(color: AppColors.error),
         ),
       ),
+    );
+  }
+
+  Widget _buildPickupMethodsSection() {
+    final pickupSelected = _pickupMethods.contains('pickup');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Info banner
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.marketLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFED7AA)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline,
+                  color: AppColors.market, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tentukan cara pembeli mendapatkan barang',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.marketDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Kamu bisa aktifkan lebih dari satu metode. Buyer hanya bisa memilih dari metode yang kamu aktifkan.',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 11,
+                        color: AppColors.marketDark.withOpacity(0.85),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Kartu pilihan metode
+        ..._pickupMethodOptions.map((meta) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _PickupMethodCard(
+                meta: meta,
+                selected: _pickupMethods.contains(meta.key),
+                onTap: () => _togglePickupMethod(meta.key),
+              ),
+            )),
+
+        // Field alamat pickup — muncul jika "Ambil Sendiri" dicentang
+        if (pickupSelected) ...[
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFED7AA)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.location_on_outlined,
+                        color: AppColors.market, size: 16),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Alamat Pengambilan Barang *',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Isi dengan alamat lengkap tempat buyer bisa datang untuk mengambil barang.',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildField(
+                  controller: _pickupAddressCtrl,
+                  hint:
+                      'Contoh: Jl. Ganesha No. 10, Tamansari, Bandung, Jawa Barat',
+                  maxLines: 3,
+                  validator: (v) {
+                    if (!_pickupMethods.contains('pickup')) return null;
+                    return (v == null || v.trim().isEmpty)
+                        ? 'Alamat pengambilan wajib diisi'
+                        : null;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Peringatan jika belum ada metode dipilih
+        if (_showPickupMethodWarning && _pickupMethods.isEmpty) ...[
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEFCE8),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFDE68A)),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.warning_amber_rounded,
+                    color: Color(0xFFCA8A04), size: 18),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Pilih minimal satu metode pengambilan agar pembeli bisa memesan produkmu.',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11.5,
+                      color: Color(0xFF854D0E),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -567,6 +796,138 @@ class _ImagePickerSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Pickup Method Meta ───────────────────────────────────
+class _PickupMethodMeta {
+  final String key;
+  final String label;
+  final String description;
+  final IconData icon;
+  final Color color;
+  final Color surface;
+  final bool needAddress;
+
+  const _PickupMethodMeta({
+    required this.key,
+    required this.label,
+    required this.description,
+    required this.icon,
+    required this.color,
+    required this.surface,
+    required this.needAddress,
+  });
+}
+
+// ── Pickup Method Card ───────────────────────────────────
+class _PickupMethodCard extends StatelessWidget {
+  final _PickupMethodMeta meta;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PickupMethodCard({
+    required this.meta,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected ? meta.surface : AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? meta.color : AppColors.border,
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Checkbox
+            Container(
+              margin: const EdgeInsets.only(top: 1),
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: selected ? meta.color : Colors.transparent,
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(
+                  color: selected ? meta.color : AppColors.border,
+                  width: 1.4,
+                ),
+              ),
+              child: selected
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(meta.icon, size: 16, color: meta.color),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          meta.label,
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: meta.needAddress
+                              ? meta.color.withOpacity(0.14)
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          meta.needAddress
+                              ? 'Butuh Alamat'
+                              : 'Tidak Butuh Alamat',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600,
+                            color: meta.needAddress
+                                ? meta.color
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    meta.description,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

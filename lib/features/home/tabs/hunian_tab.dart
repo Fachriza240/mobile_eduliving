@@ -22,7 +22,6 @@ class _HunianTabState extends State<HunianTab> {
     {'id': 'kos', 'label': 'Kos'},
     {'id': 'kontrakan', 'label': 'Kontrakan'},
     {'id': 'apartemen', 'label': 'Apartemen'},
-    {'id': 'rumah_sewa', 'label': 'Rumah Sewa'},
   ];
 
   @override
@@ -624,17 +623,9 @@ class _FilterSheetState extends State<_FilterSheet> {
                         _category = v!;
                         _kosType = null;
                       })),
-              _FilterChipUI(
-                  label: 'Rumah Sewa',
-                  value: 'rumah_sewa',
-                  selected: _category,
-                  onTap: (v) => setState(() {
-                        _category = v!;
-                        _kosType = null;
-                      })),
             ],
           ),
-          if (_category == 'kos' || _category == '') ...[
+          if (_category == 'kos') ...[
             const SizedBox(height: 16),
             const Text('Tipe Kos',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),

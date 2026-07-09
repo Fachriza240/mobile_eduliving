@@ -43,6 +43,7 @@ class _ProviderActivityFormScreenState
 
   // ── State ─────────────────────────────────────────────
   DateTime? _eventDate;
+  TimeOfDay? _eventTime;
   DateTime? _registrationDeadline;
   String _discountType = '';
   int? _categoryId;
@@ -82,8 +83,15 @@ class _ProviderActivityFormScreenState
     _latCtrl.text       = (a.latitude ?? '').toString();
     _lngCtrl.text       = (a.longitude ?? '').toString();
     _categoryId         = a.categoryId;
-    _eventDate          = a.eventDate;
-    _registrationDeadline = a.registrationDeadline;
+    if (a.eventDate != null) {
+    final localEvent = a.eventDate!.toLocal();
+    _eventDate = DateTime(localEvent.year, localEvent.month, localEvent.day);
+    _eventTime = TimeOfDay(hour: localEvent.hour, minute: localEvent.minute);
+    }
+    if (a.registrationDeadline != null) {
+      final localDeadline = a.registrationDeadline!.toLocal();
+      _registrationDeadline = DateTime(localDeadline.year, localDeadline.month, localDeadline.day);
+    }
     _existingImages     = List.from(a.images);
     _benefits.addAll(a.benefits);
     _speakers.addAll(a.speakers.map((s) => {
@@ -130,6 +138,20 @@ class _ProviderActivityFormScreenState
     if (picked != null) setState(() => _eventDate = picked);
   }
 
+  Future<void> _pickEventTime() async {
+  final picked = await showTimePicker(
+    context: context,
+    initialTime: _eventTime ?? const TimeOfDay(hour: 9, minute: 0),
+    builder: (ctx, child) => Theme(
+      data: Theme.of(ctx).copyWith(
+        colorScheme: const ColorScheme.light(primary: AppColors.activity),
+      ),
+      child: child!,
+    ),
+  );
+  if (picked != null) setState(() => _eventTime = picked);
+}
+
   Future<void> _pickDeadline() async {
     final picked = await showDatePicker(
       context: context,
@@ -146,54 +168,60 @@ class _ProviderActivityFormScreenState
     if (picked != null) setState(() => _registrationDeadline = picked);
   }
 
-  Future<FormData> _buildFormData() async {
-    final fields = <MapEntry<String, dynamic>>[
-      MapEntry('name',        _nameCtrl.text.trim()),
-      MapEntry('description', _descCtrl.text.trim()),
-      MapEntry('location',    _locationCtrl.text.trim()),
-      MapEntry('price',       _priceCtrl.text.trim()),
-      MapEntry('capacity',    _capacityCtrl.text.trim()),
-      if (_categoryId != null) MapEntry('category_id', _categoryId.toString()),
-      if (_eventDate != null)
-        MapEntry('event_date', '${_eventDate!.year}-${_eventDate!.month.toString().padLeft(2,'0')}-${_eventDate!.day.toString().padLeft(2,'0')}'),
-      // registration_deadline wajib ada (backend required)
-      if (_registrationDeadline != null)
-        MapEntry('registration_deadline', '${_registrationDeadline!.year}-${_registrationDeadline!.month.toString().padLeft(2,'0')}-${_registrationDeadline!.day.toString().padLeft(2,'0')}')
-      else if (_eventDate != null)
-        // fallback: 1 hari sebelum event_date jika belum dipilih
-        MapEntry('registration_deadline', '${_eventDate!.subtract(const Duration(days: 1)).toIso8601String().split('T').first}'),
-      if (_latCtrl.text.isNotEmpty) MapEntry('latitude', _latCtrl.text.trim()),
-      if (_lngCtrl.text.isNotEmpty) MapEntry('longitude', _lngCtrl.text.trim()),
-      if (_discountType.isNotEmpty) MapEntry('discount_type', _discountType),
-      if (_discountType.isNotEmpty && _discountValCtrl.text.isNotEmpty)
-        MapEntry('discount_value', _discountValCtrl.text.trim()),
-    ];
+  String _combineDateTimeToUtcString(DateTime date, TimeOfDay? time) {
+  final localCombined = DateTime(
+    date.year, date.month, date.day,
+    time?.hour ?? 0, time?.minute ?? 0,
+  );
+  final utc = localCombined.toUtc();
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${utc.year}-${two(utc.month)}-${two(utc.day)} ${two(utc.hour)}:${two(utc.minute)}:00';
+}
 
-    // Benefits
-    for (int i = 0; i < _benefits.length; i++) {
-      fields.add(MapEntry('benefits[$i]', _benefits[i]));
-    }
+Future<FormData> _buildFormData() async {
+  final fields = <MapEntry<String, dynamic>>[
+    MapEntry('name',        _nameCtrl.text.trim()),
+    MapEntry('description', _descCtrl.text.trim()),
+    MapEntry('location',    _locationCtrl.text.trim()),
+    MapEntry('price',       _priceCtrl.text.trim()),
+    MapEntry('capacity',    _capacityCtrl.text.trim()),
+    if (_categoryId != null) MapEntry('category_id', _categoryId.toString()),
+    if (_eventDate != null)
+      MapEntry('event_date', _combineDateTimeToUtcString(_eventDate!, _eventTime)),
+    if (_registrationDeadline != null)
+      MapEntry('registration_deadline',
+          _combineDateTimeToUtcString(_registrationDeadline!, const TimeOfDay(hour: 23, minute: 59)))
+    else if (_eventDate != null)
+      MapEntry('registration_deadline', _combineDateTimeToUtcString(
+          _eventDate!.subtract(const Duration(days: 1)), const TimeOfDay(hour: 23, minute: 59))),
+    if (_latCtrl.text.isNotEmpty) MapEntry('latitude', _latCtrl.text.trim()),
+    if (_lngCtrl.text.isNotEmpty) MapEntry('longitude', _lngCtrl.text.trim()),
+    if (_discountType.isNotEmpty) MapEntry('discount_type', _discountType),
+    if (_discountType.isNotEmpty && _discountValCtrl.text.isNotEmpty)
+      MapEntry('discount_value', _discountValCtrl.text.trim()),
+  ];
 
-    // Speakers
-    for (int i = 0; i < _speakers.length; i++) {
-      fields.add(MapEntry('speakers[$i][name]',  _speakers[i]['name'] ?? ''));
-      fields.add(MapEntry('speakers[$i][title]', _speakers[i]['title'] ?? ''));
-    }
-
-    // Images
-    final imageFiles = <MapEntry<String, MultipartFile>>[];
-    for (int i = 0; i < _newImages.length; i++) {
-      imageFiles.add(MapEntry(
-        'images[$i]',
-        await MultipartFile.fromFile(_newImages[i].path, filename: 'img_$i.jpg'),
-      ));
-    }
-
-    return FormData.fromMap({
-      for (final e in fields) e.key: e.value,
-      for (final e in imageFiles) e.key: e.value,
-    });
+  for (int i = 0; i < _benefits.length; i++) {
+    fields.add(MapEntry('benefits[$i]', _benefits[i]));
   }
+  for (int i = 0; i < _speakers.length; i++) {
+    fields.add(MapEntry('speakers[$i][name]',  _speakers[i]['name'] ?? ''));
+    fields.add(MapEntry('speakers[$i][title]', _speakers[i]['title'] ?? ''));
+  }
+
+  final imageFiles = <MapEntry<String, MultipartFile>>[];
+  for (int i = 0; i < _newImages.length; i++) {
+    imageFiles.add(MapEntry(
+      'images[$i]',
+      await MultipartFile.fromFile(_newImages[i].path, filename: 'img_$i.jpg'),
+    ));
+  }
+
+  return FormData.fromMap({
+    for (final e in fields) e.key: e.value,
+    for (final e in imageFiles) e.key: e.value,
+  });
+}
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -202,21 +230,27 @@ class _ProviderActivityFormScreenState
       return;
     }
     if (_eventDate == null) {
-      _snack('Tanggal acara wajib dipilih.', isError: true);
-      return;
-    }
-    if (_registrationDeadline == null) {
-      _snack('Batas pendaftaran wajib dipilih.', isError: true);
-      return;
-    }
-    if (!_registrationDeadline!.isBefore(_eventDate!)) {
-      _snack('Batas pendaftaran harus sebelum tanggal acara.', isError: true);
-      return;
-    }
-    if (!_eventDate!.isAfter(DateTime.now())) {
-      _snack('Tanggal acara harus setelah hari ini.', isError: true);
-      return;
-    }
+    _snack('Tanggal acara wajib dipilih.', isError: true);
+    return;
+  }
+  if (_eventTime == null) {
+    _snack('Jam mulai acara wajib dipilih.', isError: true);
+    return;
+  }
+  if (_registrationDeadline == null) {
+    _snack('Batas pendaftaran wajib dipilih.', isError: true);
+    return;
+  }
+  final eventDateTime = DateTime(_eventDate!.year, _eventDate!.month, _eventDate!.day, _eventTime!.hour, _eventTime!.minute);
+  final deadlineDateTime = DateTime(_registrationDeadline!.year, _registrationDeadline!.month, _registrationDeadline!.day, 23, 59);
+  if (!deadlineDateTime.isBefore(eventDateTime)) {
+    _snack('Batas pendaftaran harus sebelum tanggal acara.', isError: true);
+    return;
+  }
+  if (!eventDateTime.isAfter(DateTime.now())) {
+    _snack('Tanggal & jam acara harus setelah sekarang.', isError: true);
+    return;
+  }
 
     final prov = context.read<ProviderActivityProvider>();
     final formData = await _buildFormData();
@@ -401,6 +435,12 @@ class _ProviderActivityFormScreenState
                       label: 'Tanggal Acara *',
                       value: _eventDate,
                       onTap: _pickEventDate,
+                    ),
+                    const SizedBox(height: 14),
+                    _timePicker(
+                      label: 'Jam Mulai Acara *',
+                      value: _eventTime,
+                      onTap: _pickEventTime,
                     ),
                     const SizedBox(height: 14),
                     _datePicker(
@@ -727,6 +767,39 @@ class _ProviderActivityFormScreenState
     );
   }
 
+  Widget _timePicker({required String label, required TimeOfDay? value, required VoidCallback onTap}) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.access_time_rounded, size: 18, color: value != null ? AppColors.activity : AppColors.textHint),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value != null
+                  ? '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')} WIB'
+                  : label,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                color: value != null ? AppColors.textPrimary : AppColors.textHint,
+              ),
+            ),
+          ),
+          const Icon(Icons.arrow_drop_down, color: AppColors.textHint),
+        ],
+      ),
+    ),
+  );
+}
+
   Widget _sectionTitle(String title, IconData icon) => Row(
     children: [
       Icon(icon, color: AppColors.activity, size: 18),
@@ -738,7 +811,7 @@ class _ProviderActivityFormScreenState
   Widget _buildCard({required Widget child}) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: AppColors.white,
+      color: AppColors.container,
       borderRadius: BorderRadius.circular(12),
       border: Border.all(color: AppColors.border, width: 0.8),
     ),
