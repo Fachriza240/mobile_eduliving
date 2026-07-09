@@ -19,7 +19,6 @@ class _ProviderResidenceListScreenState extends State<ProviderResidenceListScree
       {'value': null,         'label': 'Semua'},
       {'value': 'kos',        'label': 'Kos'},
       {'value': 'kontrakan',  'label': 'Kontrakan'},
-      {'value': 'rumah_sewa', 'label': 'Rumah Sewa'},
       {'value': 'apartemen',  'label': 'Apartemen'},
     ];
   final _scrollCtrl = ScrollController();
@@ -337,7 +336,7 @@ class _ProviderResidenceCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            formatRupiah(residence.price, suffix: '/bln'),
+                            formatRupiah(residence.price, suffix: '/${residence.rentalPeriodShort}'),
                             style: const TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 15,

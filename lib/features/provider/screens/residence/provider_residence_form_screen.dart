@@ -69,7 +69,6 @@ class _ProviderResidenceFormScreenState
   final _typeOptions = const [
     {'value': 'kos',        'label': 'Kos'},
     {'value': 'kontrakan',  'label': 'Kontrakan'},
-    {'value': 'rumah_sewa', 'label': 'Rumah Sewa'},
     {'value': 'apartemen',  'label': 'Apartemen'},
   ];
 
@@ -103,7 +102,7 @@ class _ProviderResidenceFormScreenState
   final _discountOptions = const [
     {'value': '',           'label': 'Tidak Ada Diskon'},
     {'value': 'percentage', 'label': 'Persentase (%)'},
-    {'value': 'fixed',       'label': 'Nominal (Rp)'},
+    {'value': 'flat',       'label': 'Nominal (Rp)'},
   ];
 
   @override
@@ -641,8 +640,8 @@ class _ProviderResidenceFormScreenState
       );
     }
 
-    if (_residenceType == 'kontrakan' || _residenceType == 'rumah_sewa') {
-      final label = _residenceType == 'kontrakan' ? 'Detail Kontrakan' : 'Detail Rumah Sewa';
+    if (_residenceType == 'kontrakan') {
+      const label = 'Detail Kontrakan';
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
