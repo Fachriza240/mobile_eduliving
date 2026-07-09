@@ -8,8 +8,11 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/booking_model.dart';
 import '../../../core/widgets/common_widgets.dart';
+import '../../residence/screens/residence_detail_screen.dart';
+import '../../activity/screens/activity_detail_screen.dart';
 import 'rating_screen.dart';
-
+import 'package:provider/provider.dart';
+import '../providers/booking_provider.dart';
 class BookingDetailScreen extends StatefulWidget {
   final BookingModel booking;
   const BookingDetailScreen({super.key, required this.booking});
@@ -76,12 +79,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             const SizedBox(height: 8),
             _buildPemesanCard(),
             const SizedBox(height: 8),
+            _buildProviderCard(),
+            const SizedBox(height: 8),
             if (booking.isResidence && (booking.startDate != null || booking.endDate != null)) ...[
               _buildDateCard(),
               const SizedBox(height: 8),
             ],
             _buildPriceCard(),
-            if (booking.status == 'completed') ...[
+            if (booking.status == 'completed' || (booking.status == 'approved' && booking.transaction?['payment_status'] == 'paid')) ...[
               const SizedBox(height: 8),
               _buildRatingButton(context),
             ],
@@ -94,9 +99,115 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               else
                 _buildPaymentSection(),
             ],
+            if (booking.isCancellable) ...[
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _confirmCancel(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.errorLight,
+                      foregroundColor: AppColors.error,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'Batalkan Pemesanan',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmCancel(BuildContext context) {
+    final reasonCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Batalkan Pemesanan?',
+            style:
+                TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Yakin ingin membatalkan? Tindakan ini tidak dapat diurungkan.',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            const Text('Alasan Pembatalan (Opsional):',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: reasonCtrl,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'Tuliskan alasan...',
+                hintStyle: const TextStyle(fontSize: 13, fontFamily: 'Poppins'),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+              ),
+              style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tidak')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () async {
+              Navigator.pop(context);
+              final prov = context.read<BookingProvider>();
+              final ok = await prov.cancelBooking(booking.id,
+                  reason: reasonCtrl.text.trim());
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(
+                    ok
+                        ? 'Pemesanan berhasil dibatalkan.'
+                        : 'Gagal membatalkan. Coba lagi.',
+                    style: const TextStyle(fontFamily: 'Poppins'),
+                  ),
+                  backgroundColor: ok ? AppColors.success : AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ));
+                if (ok) {
+                  Navigator.pop(context, true);
+                }
+              }
+            },
+            child: const Text('Batalkan'),
+          ),
+        ],
       ),
     );
   }
@@ -593,8 +704,39 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Timeline
-          if (!isCancelled)
+          // Timeline atau Alasan Batal
+          if (isCancelled) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.errorLight,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Alasan Pembatalan:',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error)),
+                  const SizedBox(height: 4),
+                  Text(
+                    booking.rejectionReason ??
+                        'Dibatalkan oleh sistem atau pengguna.',
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        color: AppColors.error),
+                  ),
+                ],
+              ),
+            ),
+          ] else
             Row(
               children: List.generate(
                 steps.length * 2 - 1,
@@ -672,12 +814,30 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final imgPath =
         images != null && images.isNotEmpty ? images.first.toString() : null;
 
-    return Container(
-      color: AppColors.white,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return InkWell(
+      onTap: () {
+        if (booking.isResidence) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ResidenceDetailScreen(id: booking.bookableId),
+            ),
+          );
+        } else if (booking.isActivity) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ActivityDetailScreen(id: booking.bookableId),
+            ),
+          );
+        }
+      },
+      child: Container(
+        color: AppColors.white,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Text(
             booking.isResidence ? 'Hunian Dipesan' : 'Acara Didaftar',
             style: const TextStyle(
@@ -761,6 +921,41 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               ),
             ),
           ]),
+        ],
+      ),
+    ),
+    );
+  }
+
+  // ── Info Penyedia ─────────────────────────────────
+  Widget _buildProviderCard() {
+    final provider = booking.bookable?['provider'];
+    if (provider == null) return const SizedBox.shrink();
+
+    return Container(
+      color: AppColors.white,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Informasi Penyedia',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          InfoRow(
+              icon: Icons.store_outlined,
+              label: 'Nama Penyedia',
+              value: provider['name']?.toString() ?? '-'),
+          InfoRow(
+              icon: Icons.email_outlined,
+              label: 'Email',
+              value: provider['email']?.toString() ?? '-'),
+          InfoRow(
+              icon: Icons.phone_outlined,
+              label: 'Telepon',
+              value: provider['phone']?.toString() ?? '-'),
         ],
       ),
     );

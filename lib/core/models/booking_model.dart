@@ -11,6 +11,7 @@ class BookingModel {
   final String? fullName;
   final String? email;
   final String? phone;
+  final String? rejectionReason;
   final Map<String, dynamic>? bookable;
   final Map<String, dynamic>? transaction;
   final DateTime? createdAt;
@@ -30,6 +31,7 @@ class BookingModel {
     this.fullName,
     this.email,
     this.phone,
+    this.rejectionReason,
     this.bookable,
     this.transaction,
     this.createdAt,
@@ -61,6 +63,7 @@ class BookingModel {
       fullName: json['participant_name'] ?? json['full_name'],
       email: json['participant_email'] ?? json['email'],
       phone: json['participant_phone'] ?? json['phone'],
+      rejectionReason: json['rejection_reason'],
       bookable: json['bookable'] as Map<String, dynamic>?,
       transaction: json['transaction'] as Map<String, dynamic>?,
       createdAt: json['created_at'] != null

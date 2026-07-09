@@ -144,6 +144,7 @@ class _BookingListScreenState extends State<BookingListScreen>
   }
 
   void _confirmCancel(BuildContext context, BookingProvider prov, int id) {
+    final reasonCtrl = TextEditingController();
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -151,12 +152,38 @@ class _BookingListScreenState extends State<BookingListScreen>
         title: const Text('Batalkan Pemesanan?',
             style:
                 TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
-        content: const Text(
-          'Yakin ingin membatalkan? Tindakan ini tidak dapat diurungkan.',
-          style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13,
-              color: AppColors.textSecondary),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Yakin ingin membatalkan? Tindakan ini tidak dapat diurungkan.',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            const Text('Alasan Pembatalan (Opsional):',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: reasonCtrl,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'Tuliskan alasan...',
+                hintStyle: const TextStyle(fontSize: 13, fontFamily: 'Poppins'),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+              ),
+              style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -166,7 +193,7 @@ class _BookingListScreenState extends State<BookingListScreen>
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               Navigator.pop(context);
-              final ok = await prov.cancelBooking(id);
+              final ok = await prov.cancelBooking(id, reason: reasonCtrl.text.trim());
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text(

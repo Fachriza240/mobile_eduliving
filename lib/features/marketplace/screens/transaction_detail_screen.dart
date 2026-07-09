@@ -301,12 +301,16 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             const SizedBox(height: 24),
 
             // Selesaikan Pembayaran or Paid Section
-            if (tx.paymentStatus != 'paid')
-              _buildPaymentSection(tx)
-            else if (tx.status != 'cancelled')
-              _buildPaidSection(tx),
-            
-            const SizedBox(height: 24),
+            if (tx.status != 'cancelled') ...[
+              if (tx.pickupMethod == 'cod' || tx.pickupMethod == 'meetup')
+                _buildCodSection(tx)
+              else if (tx.paymentStatus != 'paid')
+                _buildPaymentSection(tx)
+              else
+                _buildPaidSection(tx),
+              
+              const SizedBox(height: 24),
+            ],
 
             // Info Penjual
             const Text('Informasi Penjual', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 15)),
@@ -424,14 +428,21 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                       Text(tx.statusLabel, style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w600)),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Status Pembayaran:', style: TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.textHint)),
-                      Text(tx.status == 'pending' ? 'Menunggu Pembayaran' : 'Dikonfirmasi', style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
+                  if (tx.status != 'cancelled') ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Status Pembayaran:', style: TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.textHint)),
+                        Text(
+                          tx.pickupMethod == 'cod' || tx.pickupMethod == 'meetup' 
+                            ? 'Bayar di Tempat'
+                            : (tx.paymentStatus == 'paid' ? 'Dikonfirmasi' : 'Menunggu Pembayaran'), 
+                          style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ],
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Divider(height: 1, color: AppColors.divider),
@@ -579,9 +590,8 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           const Text('Metode Pembayaran *', style: TextStyle(fontFamily: 'Poppins', fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           ...[
-            {'value': 'bank_transfer', 'label': 'Transfer Bank', 'icon': Icons.account_balance_outlined},
+            {'value': 'bank_transfer', 'label': 'Transfer Bank / Manual', 'icon': Icons.account_balance_outlined},
             {'value': 'e_wallet', 'label': 'E-Wallet', 'icon': Icons.account_balance_wallet_outlined},
-            {'value': 'cash', 'label': 'Tunai', 'icon': Icons.money_outlined},
           ].map((m) => GestureDetector(
             onTap: () => setState(() => _selectedPaymentMethod = m['value'] as String),
             child: Container(
@@ -673,6 +683,34 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               Text('Pembayaran diproses aman oleh sistem', style: TextStyle(fontFamily: 'Poppins', fontSize: 10, color: AppColors.textHint)),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCodSection(MarketplaceTransactionModel tx) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.handshake_outlined, color: Colors.green, size: 24),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Bayar di Tempat (COD)', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 14, color: Colors.green)),
+                SizedBox(height: 4),
+                Text('Silakan lakukan pembayaran tunai langsung kepada penjual saat Anda menerima barang.', style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textSecondary, height: 1.5)),
+              ],
+            ),
+          )
         ],
       ),
     );

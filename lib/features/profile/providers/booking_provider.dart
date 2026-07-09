@@ -56,10 +56,12 @@ class BookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Batalkan Booking ─────────────────────────────────
-  Future<bool> cancelBooking(int bookingId) async {
+  Future<bool> cancelBooking(int bookingId, {String? reason}) async {
     try {
-      await _api.patch(ApiConstants.userBookingCancel(bookingId));
+      await _api.patch(
+        ApiConstants.userBookingCancel(bookingId),
+        data: {'reason': reason},
+      );
 
       // Update status lokal tanpa reload
       final idx = _bookings.indexWhere((b) => b.id == bookingId);
@@ -68,6 +70,7 @@ class BookingProvider extends ChangeNotifier {
         _bookings[idx] = BookingModel.fromJson({
           ...old.toJson(),
           'status': 'cancelled',
+          'rejection_reason': reason,
         });
         notifyListeners();
       }

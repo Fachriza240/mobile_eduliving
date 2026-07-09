@@ -11,6 +11,9 @@ class MarketplaceProductModel {
   final double averageRating;
   final int ratingsCount;
   final int viewsCount;
+  final List<String> tags;
+  final List<String> pickupMethods;
+  final String? location;
   final MarketplaceSeller seller;
   final MarketplaceCategory? category;
   final DateTime createdAt;
@@ -28,6 +31,9 @@ class MarketplaceProductModel {
     required this.averageRating,
     required this.ratingsCount,
     required this.viewsCount,
+    this.tags = const [],
+    this.pickupMethods = const ['pickup'],
+    this.location,
     required this.seller,
     this.category,
     required this.createdAt,
@@ -65,6 +71,9 @@ class MarketplaceProductModel {
       averageRating: (json['average_rating'] ?? 0).toDouble(),
       ratingsCount: json['ratings_count'] ?? 0,
       viewsCount: json['views_count'] ?? 0,
+      tags: List<String>.from(json['tags'] ?? []),
+      pickupMethods: json['pickup_methods'] != null ? List<String>.from(json['pickup_methods']) : ['pickup'],
+      location: json['location'],
       seller: MarketplaceSeller.fromJson(json['seller'] ?? {}),
       category: json['category'] != null
           ? MarketplaceCategory.fromJson(json['category'])
@@ -80,6 +89,8 @@ class MarketplaceSeller {
   final String? profilePicture;
   final String? phone;
   final String? address;
+  final DateTime? lastSeenAt;
+  final DateTime? createdAt;
 
   MarketplaceSeller({
     required this.id,
@@ -87,6 +98,8 @@ class MarketplaceSeller {
     this.profilePicture,
     this.phone,
     this.address,
+    this.lastSeenAt,
+    this.createdAt,
   });
 
   factory MarketplaceSeller.fromJson(Map<String, dynamic> json) =>
@@ -96,6 +109,8 @@ class MarketplaceSeller {
         profilePicture: json['profile_picture'],
         phone: json['phone'],
         address: json['address'] ?? json['residence_name'],
+        lastSeenAt: json['last_seen_at'] != null ? DateTime.tryParse(json['last_seen_at']) : null,
+        createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
       );
 }
 

@@ -285,7 +285,7 @@ class _BerandaTabState extends State<BerandaTab> {
             seeAllColor: AppColors.market,
             onSeeAll: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const MarketplaceScreen()),
+              MaterialPageRoute(builder: (_) => const MarketplaceScreen(showBackButton: true)),
             ),
           ),
           const SizedBox(height: 16),
@@ -400,7 +400,10 @@ class _BerandaTabState extends State<BerandaTab> {
                 subtitle: 'Belanja produk',
                 iconColor: Colors.orange,
                 bgColor: Colors.orange.withValues(alpha: 0.1),
-                onTap: () => Navigator.pushNamed(context, '/marketplace'),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MarketplaceScreen(showBackButton: true)),
+                ),
               ),
             ),
             const SizedBox(width: 12),

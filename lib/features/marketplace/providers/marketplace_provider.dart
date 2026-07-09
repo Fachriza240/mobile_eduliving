@@ -110,10 +110,15 @@ class MarketplaceProvider extends ChangeNotifier {
     }
   }
 
-  Future<MarketplaceProductModel?> fetchDetail(int id) async {
+  Future<Map<String, dynamic>?> fetchDetailData(int id) async {
     try {
       final response = await _api.dio.get('/marketplace/$id');
-      return MarketplaceProductModel.fromJson(response.data['data']);
+      return {
+        'product': MarketplaceProductModel.fromJson(response.data['data']),
+        'related_products': (response.data['related_products'] as List?)
+            ?.map((e) => MarketplaceProductModel.fromJson(e))
+            .toList() ?? [],
+      };
     } catch (_) {
       return null;
     }

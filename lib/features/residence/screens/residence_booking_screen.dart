@@ -19,10 +19,10 @@ class ResidenceBookingScreen extends StatefulWidget {
 class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
   final _api = ApiService();
   final _notesCtrl = TextEditingController();
+  final _durationCtrl = TextEditingController(text: '1');
   final _picker = ImagePicker();
 
   DateTime? _startDate;
-  int _durationMonths = 1;
   bool _termsAccepted = false;
   bool _isLoading = false;
   String? _error;
@@ -33,11 +33,29 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
   File? _kkFile;
   String? _kkFileName;
 
-  static const _durations = [1, 2, 3, 6, 12];
+  // Pilihan durasi: bergantung pada rental_period
+  bool get _isYearly => widget.residence.rentalPeriod == 'yearly';
+  
+  int get _durationValue {
+    int val = int.tryParse(_durationCtrl.text) ?? 1;
+    return val < 1 ? 1 : val; // Ensure at least 1
+  }
+
+  // Konversi ke bulan untuk dikirim ke backend
+  int get _durationMonths => _isYearly ? _durationValue * 12 : _durationValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _durationCtrl.addListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
     _notesCtrl.dispose();
+    _durationCtrl.dispose();
     super.dispose();
   }
 
@@ -50,8 +68,12 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
     );
   }
 
-  double get _pricePerMonth => widget.residence.discountedPrice;
-  double get _total => _pricePerMonth * _durationMonths;
+  // Harga: untuk tahunan total = harga/tahun × durasi_tahun
+  //        untuk bulanan total = harga/bulan × durasi_bulan
+  double get _total {
+    final price = widget.residence.discountedPrice;
+    return _isYearly ? price * _durationValue : price * _durationValue;
+  }
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -67,11 +89,12 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
         child: child!,
       ),
     );
-    if (picked != null)
+    if (picked != null) {
       setState(() {
         _startDate = picked;
         _error = null;
       });
+    }
   }
 
   Future<void> _pickDocument(bool isKtp) async {
@@ -253,30 +276,36 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
                   // Durasi sewa
                   _fieldLabel('Durasi Sewa *'),
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border:
-                          Border.all(color: AppColors.residence, width: 1.5),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: _durationMonths,
-                        isExpanded: true,
-                        style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13,
-                            color: AppColors.textPrimary),
-                        items: _durations
-                            .map((d) => DropdownMenuItem(
-                                  value: d,
-                                  child: Text('$d Bulan'),
-                                ))
-                            .toList(),
-                        onChanged: (v) => setState(() => _durationMonths = v!),
+                  TextFormField(
+                    controller: _durationCtrl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      filled: true,
+                      fillColor: AppColors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                            color: AppColors.residence, width: 1.5),
+                      ),
+                      suffixText: _isYearly ? 'Tahun' : 'Bulan',
+                      suffixStyle: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 13,
+                          color: AppColors.textSecondary),
                     ),
                   ),
 
@@ -520,11 +549,16 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
   }
 
   Widget _buildPriceSummary(ResidenceModel r) {
+    final String periodLabel = _isYearly ? 'Tahun' : 'Bulan';
+    final String priceLabel = _isYearly ? 'Harga per Tahun' : 'Harga per Bulan';
+    final String discountedLabel =
+        _isYearly ? 'Harga per Tahun (setelah diskon)' : 'Harga per Bulan (setelah diskon)';
+
     return _buildSection(
       title: 'Ringkasan',
       child: Column(
         children: [
-          _priceRow('Harga per Bulan', formatRupiah(r.price)),
+          _priceRow(priceLabel, formatRupiah(r.price)),
           if (r.hasDiscount) ...[
             _priceRow(
               'Diskon',
@@ -533,10 +567,10 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
                   : '-${formatRupiah(r.discountValue ?? 0)}',
               color: AppColors.activity,
             ),
-            _priceRow('Harga per Bulan (setelah diskon)',
-                formatRupiah(_pricePerMonth)),
+            _priceRow(discountedLabel,
+                formatRupiah(r.discountedPrice)),
           ],
-          _priceRow('Durasi', '$_durationMonths Bulan'),
+          _priceRow('Durasi', '$_durationValue $periodLabel'),
           const Divider(height: 16),
           _priceRow('Total', formatRupiah(_total),
               bold: true, color: AppColors.residence),
@@ -750,7 +784,7 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  hasFile ? fileName! : 'Pilih file...',
+                  hasFile ? fileName : 'Pilih file...',
                   style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 13,
