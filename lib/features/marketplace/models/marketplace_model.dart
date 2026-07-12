@@ -170,6 +170,7 @@ class MarketplaceTransactionModel {
       'pending': 'Menunggu',
       'payment_uploaded': 'Bukti Dikirim',
       'confirmed': 'Dikonfirmasi',
+      'in_progress': 'Diproses',
       'shipped': 'Dikirim',
       'completed': 'Selesai',
       'cancelled': 'Dibatalkan',

@@ -408,34 +408,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ],
                         ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (product.seller.phone != null) ...[
-                            GestureDetector(
-                              onTap: () => AppHelpers.openWhatsApp(
-                                  context,
-                                  product.seller.phone!,
-                                  'Halo, saya tertarik dengan produk "${product.name}"'),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Icon(Icons.chat_outlined, size: 14, color: Colors.green),
-                                    SizedBox(width: 4),
-                                    Text('Chat', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w500)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+
                     ],
                   ),
                 ),
@@ -646,6 +619,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           height: 50,
                           child: OutlinedButton(
                             onPressed: () {
+                              final userId = context.read<AuthProvider>().user?.id;
+                              if (userId != null && product.seller.id == userId) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Tidak bisa membeli produk sendiri.'),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                                return;
+                              }
+
                               context.read<CartProvider>().addItem(product);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -668,6 +652,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           height: 50,
                           child: ElevatedButton(
                             onPressed: () {
+                              final userId = context.read<AuthProvider>().user?.id;
+                              if (userId != null && product.seller.id == userId) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Tidak bisa membeli produk sendiri.'),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                                return;
+                              }
+
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(

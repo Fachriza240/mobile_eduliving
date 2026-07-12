@@ -10,6 +10,7 @@ import '../../../core/utils/app_helpers.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../models/marketplace_model.dart';
 import '../providers/marketplace_provider.dart';
+import 'product_detail_screen.dart';
 
 class TransactionDetailScreen extends StatefulWidget {
   final int transactionId;
@@ -180,8 +181,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Timer if pending
-            if (tx.status == 'pending' && tx.paymentStatus != 'paid' && _timeLeft > Duration.zero)
+            // Timer if pending and requires transfer (delivery)
+            if (tx.status == 'pending' && 
+                tx.paymentStatus != 'paid' && 
+                _timeLeft > Duration.zero && 
+                (tx.pickupMethod == 'delivery' || tx.pickupMethod == 'transfer'))
               _buildTimerBanner(tx),
 
             if (tx.status != 'pending' || tx.paymentStatus == 'paid' || _timeLeft == Duration.zero)
@@ -229,16 +233,27 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             // Info Produk
             const Text('Informasi Produk', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 15)),
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            InkWell(
+              onTap: () {
+                if (tx.product != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProductDetailScreen(productId: tx.product!.id),
+                    ),
+                  );
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   if (tx.product != null && tx.product!.firstImage.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
@@ -298,11 +313,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                 ],
               ),
             ),
+            ),
             const SizedBox(height: 24),
 
             // Selesaikan Pembayaran or Paid Section
             if (tx.status != 'cancelled') ...[
-              if (tx.pickupMethod == 'cod' || tx.pickupMethod == 'meetup')
+              if (tx.pickupMethod == 'cod' || tx.pickupMethod == 'meetup' || tx.pickupMethod == 'pickup')
                 _buildCodSection(tx)
               else if (tx.paymentStatus != 'paid')
                 _buildPaymentSection(tx)
@@ -435,10 +451,19 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                       children: [
                         const Text('Status Pembayaran:', style: TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.textHint)),
                         Text(
-                          tx.pickupMethod == 'cod' || tx.pickupMethod == 'meetup' 
-                            ? 'Bayar di Tempat'
-                            : (tx.paymentStatus == 'paid' ? 'Dikonfirmasi' : 'Menunggu Pembayaran'), 
-                          style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w600),
+                          tx.status == 'completed'
+                            ? 'Sudah Dibayar'
+                            : (tx.pickupMethod == 'pickup' || tx.pickupMethod == 'cod' || tx.pickupMethod == 'meetup'
+                                ? 'Bayar di Tempat'
+                                : (tx.paymentStatus == 'paid' ? 'Sudah Dibayar' : 'Menunggu Pembayaran')), 
+                          style: TextStyle(
+                            fontFamily: 'Poppins', 
+                            fontSize: 12, 
+                            fontWeight: FontWeight.w600,
+                            color: (tx.status == 'completed' || tx.paymentStatus == 'paid') 
+                              ? Colors.green 
+                              : Colors.orange,
+                          ),
                         ),
                       ],
                     ),

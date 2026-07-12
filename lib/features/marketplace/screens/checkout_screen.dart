@@ -5,7 +5,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../models/marketplace_model.dart';
 import '../providers/marketplace_provider.dart';
-import '../../auth/providers/auth_provider.dart';
+import '../../profile/models/address_model.dart';
+import '../../profile/providers/address_provider.dart';
+import '../../profile/screens/address/address_list_screen.dart';
 import 'transaction_detail_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -24,40 +26,38 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
   late int _quantity;
-  String _pickupMethod = 'pickup'; // default: Ambil Sendiri
+  String _pickupMethod = 'pickup';
   bool _isLoading = false;
+  AddressModel? _selectedAddress;
 
   @override
   void initState() {
     super.initState();
     _quantity = widget.quantity;
-    if (widget.product.pickupMethods.isNotEmpty) {
-      _pickupMethod = widget.product.pickupMethods.first;
+    
+    final validMethods = widget.product.pickupMethods.where((m) => m != 'cod').toList();
+    if (validMethods.isNotEmpty) {
+      _pickupMethod = validMethods.first;
     }
     
-    // Auto-fill user data
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = context.read<AuthProvider>().user;
-      if (user != null) {
-        if (mounted) {
-          setState(() {
-            _nameCtrl.text = user.name;
-            _phoneCtrl.text = user.phone ?? '';
-          });
-        }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final prov = context.read<AddressProvider>();
+      if (prov.addresses.isEmpty) {
+        await prov.fetchAddresses();
+      }
+      if (mounted) {
+        setState(() {
+          _selectedAddress = prov.defaultAddress;
+        });
       }
     });
   }
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _phoneCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
@@ -65,17 +65,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_selectedAddress == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Silakan pilih alamat pengiriman!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     
     try {
-      final user = context.read<AuthProvider>().user;
       final res = await context.read<MarketplaceTransactionProvider>().buyProduct(
         widget.product.id,
         {
           'quantity': _quantity,
-          'buyer_name': _nameCtrl.text,
-          'buyer_phone': _phoneCtrl.text,
-          'buyer_address': user?.address ?? '-', 
+          'buyer_name': _selectedAddress!.recipientName,
+          'buyer_phone': _selectedAddress!.phone,
+          'buyer_address': _selectedAddress!.address, 
           'pickup_method': _pickupMethod,
           'pickup_notes': _notesCtrl.text,
           'payment_method': 'pending', // Will be chosen in TransactionDetailScreen
@@ -137,6 +143,64 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ADDRESS SECTION (Ala Shopee)
+                if (_pickupMethod == 'delivery') ...[
+                  InkWell(
+                  onTap: () async {
+                    final selected = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddressListScreen(
+                          isSelecting: true,
+                          selectedAddress: _selectedAddress,
+                        ),
+                      ),
+                    );
+                    if (selected != null && selected is AddressModel) {
+                      setState(() => _selectedAddress = selected);
+                    }
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on, color: AppColors.market, size: 20),
+                            const SizedBox(width: 8),
+                            const Text('Alamat Pengiriman', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 14)),
+                            const Spacer(),
+                            const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (_selectedAddress == null)
+                          const Text('Belum ada alamat terpilih. Ketuk untuk memilih.', style: TextStyle(fontFamily: 'Poppins', color: AppColors.error, fontSize: 13))
+                        else ...[
+                          Row(
+                            children: [
+                              Text(_selectedAddress!.recipientName, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 13)),
+                              const SizedBox(width: 8),
+                              Text('(+62) ${_selectedAddress!.phone}', style: const TextStyle(fontFamily: 'Poppins', color: AppColors.textSecondary, fontSize: 13)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(_selectedAddress!.address, style: const TextStyle(fontFamily: 'Poppins', color: AppColors.textSecondary, fontSize: 12, height: 1.4)),
+                        ]
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ],
+
                 // Product Info
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -252,18 +316,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.person_outline, color: AppColors.market, size: 20),
-                          const SizedBox(width: 8),
-                          const Text('Informasi Pembeli', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.textPrimary)),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _inputField('Nama Lengkap *', _nameCtrl, required: true),
-                      const SizedBox(height: 16),
-                      _inputField('Nomor Telepon *', _phoneCtrl, required: true, keyboard: TextInputType.phone),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -313,7 +366,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       const SizedBox(height: 12),
                       
                       Column(
-                        children: widget.product.pickupMethods.map((method) {
+                        children: () {
+                          var methods = widget.product.pickupMethods.where((m) => m != 'cod').toList();
+                          if (methods.isEmpty) methods = ['pickup'];
+                          return methods;
+                        }().map((method) {
                           String title = '';
                           String desc = '';
                           IconData icon = Icons.local_shipping;
@@ -376,20 +433,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(desc, style: const TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textSecondary)),
-                                        if (method == 'pickup') ...[
-                                          const SizedBox(height: 8),
-                                          Row(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Icon(Icons.location_on, color: isSelected ? themeColor : AppColors.textSecondary, size: 14),
-                                              const SizedBox(width: 4),
-                                              Expanded(
-                                                child: Text('Alamat: ${widget.product.seller.address ?? 'Tanya penjual'}',
-                                                    style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: isSelected ? themeColor : AppColors.textSecondary)),
-                                              ),
-                                            ],
-                                          )
-                                        ]
                                       ],
                                     ),
                                   )
@@ -399,7 +442,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           );
                         }).toList(),
                       ),
-                      
                       const SizedBox(height: 16),
                       const Text('Catatan (Opsional)', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 12, color: AppColors.textPrimary)),
                       const SizedBox(height: 8),

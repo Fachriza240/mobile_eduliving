@@ -148,14 +148,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                     value: '${a.capacity ?? 0} peserta',
                     iconColor: AppColors.activity,
                   ),
-                  InfoRow(
-                    icon: Icons.business_outlined,
-                    label: 'Penyelenggara',
-                    value: a.providerName,
-                    iconColor: AppColors.activity,
-                  ),
                 ]),
               ),
+              const SizedBox(height: 8),
+              _section('Penyelenggara', _buildProviderInfo(a.provider)),
               const SizedBox(height: 8),
               _section('Ulasan & Penilaian', _buildRatings(a)),
               const SizedBox(height: 100),
@@ -295,6 +291,74 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       },
       icon: const Icon(Icons.how_to_reg_rounded, size: 18),
       label: const Text('Daftar Sekarang'),
+    );
+  }
+
+  Widget _buildProviderInfo(Map<String, dynamic>? providerData) {
+    if (providerData == null) return const SizedBox();
+    
+    final name = providerData['name']?.toString() ?? 'Penyelenggara';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final createdAtStr = providerData['created_at']?.toString();
+    final lastSeenStr = providerData['last_seen_at']?.toString();
+    
+    String memberSince = 'Penyelenggara';
+    if (createdAtStr != null) {
+      final dt = DateTime.tryParse(createdAtStr);
+      if (dt != null) {
+        memberSince = 'Anggota sejak ${dt.year}';
+      }
+    }
+
+    Widget? lastSeenWidget;
+    if (lastSeenStr != null) {
+      final dt = DateTime.tryParse(lastSeenStr);
+      if (dt != null) {
+        if (DateTime.now().difference(dt).inMinutes < 5) {
+          lastSeenWidget = const Text('Online', style: TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w500));
+        } else {
+          lastSeenWidget = Text('Terakhir online ${dt.day}/${dt.month}/${dt.year}', style: TextStyle(fontSize: 12, color: Colors.grey[500]));
+        }
+      }
+    }
+    if (lastSeenWidget == null) {
+      lastSeenWidget = Text('Belum pernah online', style: TextStyle(fontSize: 12, color: Colors.grey[500]));
+    }
+
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 20,
+          backgroundColor: AppColors.activity.withOpacity(0.1),
+          child: Text(
+            initial,
+            style: const TextStyle(
+                color: AppColors.activity,
+                fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                memberSince,
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 12, color: Colors.grey[500]),
+              ),
+              const SizedBox(height: 2),
+              lastSeenWidget,
+            ],
+          ),
+        ),
+      ],
     );
   }
 

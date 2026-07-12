@@ -44,15 +44,6 @@ class _ProviderMarketplaceFormScreenState
 
   static final List<_PickupMethodMeta> _pickupMethodOptions = [
   _PickupMethodMeta(
-    key: 'cod',
-    label: 'COD (Bayar di Tempat)',
-    description: 'Pembeli bertemu dengan penjual, bayar langsung saat menerima barang.',
-    icon: Icons.payments_outlined,
-    color: const Color(0xFF16A34A), // hijau
-    surface: const Color(0xFFF0FDF4),
-    needAddress: false,
-  ),
-  _PickupMethodMeta(
     key: 'delivery',
     label: 'Diantar Seller',
     description: 'Penjual mengantar barang ke alamat pembeli. Pembeli transfer terlebih dahulu.',
@@ -94,7 +85,7 @@ class _ProviderMarketplaceFormScreenState
     _condition = p.condition;
     _categoryId = p.categoryId;
     _existingImages = List.from(p.images);
-    _pickupMethods = List.from(p.pickupMethods);
+    _pickupMethods = List.from(p.pickupMethods)..remove('cod');
     _pickupAddressCtrl.text = p.pickupAddress ?? '';  
   }
 
