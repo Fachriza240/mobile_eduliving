@@ -215,7 +215,12 @@ class _OrderCard extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
                 ),
-                _StatusBadge(status: order.status, label: order.statusLabel),
+                _StatusBadge(
+                  status: (order.status == 'pending' && (order.paymentStatus == 'paid' || order.paymentProofUrl != null)) 
+                      ? 'payment_uploaded' 
+                      : order.status,
+                  label: order.statusLabel,
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -359,7 +364,11 @@ class _OrderDetailSheet extends StatelessWidget {
                     ),
                   ),
                   _StatusBadge(
-                      status: order.status, label: order.statusLabel),
+                      status: (order.status == 'pending' && (order.paymentStatus == 'paid' || order.paymentProofUrl != null)) 
+                          ? 'payment_uploaded' 
+                          : order.status,
+                      label: order.statusLabel,
+                  ),
                 ],
               ),
             ),
@@ -401,7 +410,18 @@ class _OrderDetailSheet extends StatelessWidget {
 
                   // Pembayaran
                   _detailSection('Pembayaran', [
-                    _row('Metode', order.paymentMethod.toUpperCase()),
+                    _row('Metode', order.paymentMethodLabel),
+                    _row(
+                      'Status', 
+                      (order.status == 'completed' || order.status == 'shipped')
+                          ? 'Sudah Dibayar' 
+                          : (order.pickupMethod == 'pickup' || order.pickupMethod == 'meetup' || order.pickupMethod == 'cod'
+                              ? 'Bayar di Tempat'
+                              : (order.paymentStatus == 'paid' ? 'Sudah Dibayar' : 'Menunggu Pembayaran')),
+                      valueColor: (order.status == 'completed' || order.status == 'shipped' || order.paymentStatus == 'paid')
+                          ? AppColors.success
+                          : AppColors.warning,
+                    ),
                     if (order.paymentProofUrl != null)
                       _row('Bukti bayar', 'Sudah diunggah ✓',
                           valueColor: AppColors.success),
@@ -436,7 +456,30 @@ class _OrderDetailSheet extends StatelessWidget {
       }
     }
 
-    switch (order.status) {
+    String effectiveStatus = order.status;
+    if (effectiveStatus == 'pending' && (order.paymentStatus == 'paid' || order.paymentProofUrl != null)) {
+      effectiveStatus = 'payment_uploaded';
+    }
+
+    switch (effectiveStatus) {
+      case 'pending':
+        if (order.pickupMethod == 'cod' || order.pickupMethod == 'meetup' || order.pickupMethod == 'pickup') {
+          buttons.add(_actionBtn(
+            'Konfirmasi Pesanan',
+            Icons.check_circle_outline,
+            AppColors.success,
+            () => doAction(() => prov.confirmOrder(order.id), 'Pesanan dikonfirmasi.'),
+          ));
+          buttons.add(const SizedBox(height: 10));
+          buttons.add(_actionBtn(
+            'Tolak Pesanan',
+            Icons.cancel_outlined,
+            AppColors.error,
+            () => doAction(() => prov.rejectOrder(order.id, reason: 'Dibatalkan oleh penjual.'), 'Pesanan ditolak.'),
+            outlined: true,
+          ));
+        }
+        break;
       case 'payment_uploaded':
         buttons.add(_actionBtn(
           'Konfirmasi Pembayaran',
@@ -451,19 +494,29 @@ class _OrderDetailSheet extends StatelessWidget {
           Icons.cancel_outlined,
           AppColors.error,
           () => doAction(
-              () => prov.rejectOrder(order.id), 'Pesanan ditolak.'),
+              () => prov.rejectOrder(order.id, reason: 'Dibatalkan oleh penjual.'), 'Pesanan ditolak.'),
           outlined: true,
         ));
         break;
       case 'confirmed':
-        buttons.add(_actionBtn(
-          'Tandai Dikirim',
-          Icons.local_shipping_outlined,
-          AppColors.market,
-          () => doAction(() => prov.shipOrder(order.id), 'Pesanan dikirim.'),
-        ));
+        if (order.pickupMethod == 'pickup' || order.pickupMethod == 'cod' || order.pickupMethod == 'meetup') {
+          buttons.add(_actionBtn(
+            'Selesaikan Pesanan (Sudah Diambil/Dibayar)',
+            Icons.done_all_rounded,
+            AppColors.success,
+            () => doAction(() => prov.completeOrder(order.id), 'Pesanan selesai.'),
+          ));
+        } else {
+          buttons.add(_actionBtn(
+            'Tandai Diproses / Dikirim',
+            Icons.local_shipping_outlined,
+            AppColors.market,
+            () => doAction(() => prov.shipOrder(order.id), 'Pesanan dikirim.'),
+          ));
+        }
         break;
       case 'shipped':
+      case 'in_progress':
         buttons.add(_actionBtn(
           'Selesaikan Pesanan',
           Icons.done_all_rounded,

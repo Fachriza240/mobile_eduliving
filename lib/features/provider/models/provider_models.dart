@@ -523,6 +523,7 @@ class ProviderMarketplaceOrderModel {
   final String? pickupAddress;
   final String? pickupNotes;
   final String paymentMethod;
+  final String paymentStatus;
   final String? paymentProofUrl;
   final ProviderMarketplaceProductModel? product;
   final DateTime createdAt;
@@ -540,6 +541,7 @@ class ProviderMarketplaceOrderModel {
     required this.pickupAddress,
     this.pickupNotes,
     required this.paymentMethod,
+    required this.paymentStatus,
     this.paymentProofUrl,
     this.product,
     required this.createdAt,
@@ -550,14 +552,21 @@ class ProviderMarketplaceOrderModel {
       'pending'          : 'Menunggu',
       'payment_uploaded' : 'Bukti Dikirim',
       'confirmed'        : 'Dikonfirmasi',
+      'in_progress'      : 'Diproses',
       'shipped'          : 'Dikirim',
       'completed'        : 'Selesai',
       'cancelled'        : 'Dibatalkan',
     };
+    if (status == 'pending' && (paymentStatus == 'paid' || paymentProofUrl != null)) {
+      return 'Bukti Dikirim';
+    }
     return labels[status] ?? status;
   }
 
   Color get statusColor {
+    if (status == 'pending' && (paymentStatus == 'paid' || paymentProofUrl != null)) {
+      return const Color(0xFF2563EB);
+    }
     switch (status) {
       case 'pending':          return const Color(0xFFD97706);
       case 'payment_uploaded': return const Color(0xFF2563EB);
@@ -578,6 +587,16 @@ class ProviderMarketplaceOrderModel {
     return labels[pickupMethod] ?? pickupMethod;
   }
 
+  String get paymentMethodLabel {
+    if (pickupMethod == 'pickup' || pickupMethod == 'meetup' || pickupMethod == 'cod') {
+      return 'Bayar di Tempat (COD)';
+    }
+    if (paymentMethod == 'pending' || paymentMethod.isEmpty) {
+      return 'Transfer Manual (Menunggu)';
+    }
+    return paymentMethod.toUpperCase();
+  }
+
   factory ProviderMarketplaceOrderModel.fromJson(Map<String, dynamic> json) {
     return ProviderMarketplaceOrderModel(
       id             : json['id'] ?? 0,
@@ -592,7 +611,8 @@ class ProviderMarketplaceOrderModel {
       pickupAddress  : json['pickup_address'],
       pickupNotes    : json['pickup_notes'],
       paymentMethod  : json['payment_method'] ?? '',
-      paymentProofUrl: json['payment_proof_url'],
+      paymentStatus  : json['payment_status'] ?? 'unpaid',
+      paymentProofUrl: json['payment_proof_url'] ?? json['payment_proof'],
       product        : json['product'] != null
           ? ProviderMarketplaceProductModel.fromJson(json['product'])
           : null,

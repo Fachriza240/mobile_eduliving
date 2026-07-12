@@ -118,7 +118,7 @@ class ResidenceModel {
       longitude: json['longitude'] != null
           ? double.tryParse(json['longitude'].toString())
           : null,
-      rentalPeriod: json['rental_period'],
+      rentalPeriod: json['rental_period'] ?? json['rent_period'],
       price: double.tryParse(json['price']?.toString() ?? '0') ?? 0,
       capacity: json['capacity'],
       availableSlots: json['available_slots'],

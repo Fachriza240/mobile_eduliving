@@ -627,8 +627,22 @@ class _ResidenceHCard extends StatelessWidget {
                     ),
                   ]),
                   const SizedBox(height: 6),
+                  if (data['has_discount'] == true || data['has_discount'] == 1 || data['has_discount'] == '1' || data['discount_type'] != null)
+                    Text(
+                      _rupiah(data['price'], period: data['rental_period'] ?? data['rent_period']),
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: AppColors.textHint,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
                   Text(
-                    _rupiah(data['price']),
+                    _rupiah(
+                        data['discounted_price'] ??
+                            _calcDiscount(data['price'], data['discount_type'],
+                                data['discount_value']),
+                        period: data['rental_period'] ?? data['rent_period']),
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 12,
@@ -645,11 +659,40 @@ class _ResidenceHCard extends StatelessWidget {
     );
   }
 
-  String _rupiah(dynamic p) {
+  String _rupiah(dynamic p, {String? period}) {
     if (p == null) return 'Gratis';
     final v = double.tryParse(p.toString()) ?? 0;
     if (v == 0) return 'Gratis';
-    return 'Rp ${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}/bln';
+    final formatted = formatRupiah(v);
+    if (period != null && period.isNotEmpty) {
+      return '$formatted/${_shortPeriod(period)}';
+    }
+    if (v >= 10000000) return '$formatted/thn';
+    return '$formatted/bln';
+  }
+
+  String _shortPeriod(String? p) {
+    switch (p) {
+      case 'monthly':
+        return 'bln';
+      case 'yearly':
+        return 'thn';
+      case 'daily':
+        return 'hari';
+      default:
+        return 'bln';
+    }
+  }
+
+  double _calcDiscount(dynamic priceVal, dynamic type, dynamic discountVal) {
+    final p = double.tryParse(priceVal?.toString() ?? '0') ?? 0;
+    if (type == null || discountVal == null) return p;
+    final d = double.tryParse(discountVal.toString()) ?? 0;
+    if (d <= 0) return p;
+    if (type == 'percentage') {
+      return p - (p * d / 100);
+    }
+    return p - d;
   }
 }
 
@@ -718,8 +761,18 @@ class _ActivityHCard extends StatelessWidget {
                     ),
                   ]),
                   const SizedBox(height: 4),
+                  if (data['has_discount'] == true || data['has_discount'] == 1 || data['has_discount'] == '1' || data['discount_type'] != null)
+                    Text(
+                      _price(data['price']),
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: AppColors.textHint,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
                   Text(
-                    _price(data['price']),
+                    _price(data['discounted_price'] ?? _calcDiscount(data['price'], data['discount_type'], data['discount_value'])),
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 12,
@@ -756,7 +809,7 @@ class _ActivityHCard extends StatelessWidget {
     if (p == null) return 'Gratis';
     final v = double.tryParse(p.toString()) ?? 0;
     if (v == 0) return 'Gratis';
-    return 'Rp ${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+    return formatRupiah(v);
   }
 
   String _date(dynamic d) {
@@ -782,6 +835,17 @@ class _ActivityHCard extends StatelessWidget {
     } catch (_) {
       return d.toString();
     }
+  }
+
+  double _calcDiscount(dynamic priceVal, dynamic type, dynamic discountVal) {
+    final p = double.tryParse(priceVal?.toString() ?? '0') ?? 0;
+    if (type == null || discountVal == null) return p;
+    final d = double.tryParse(discountVal.toString()) ?? 0;
+    if (d <= 0) return p;
+    if (type == 'percentage') {
+      return p - (p * d / 100);
+    }
+    return p - d;
   }
 }
 

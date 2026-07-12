@@ -7,6 +7,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/booking_provider.dart';
 import '../../profile/screens/booking_list_screen.dart';
 import '../../profile/screens/edit_profile_screen.dart';
+import '../../profile/screens/address/address_list_screen.dart';
 
 class ProfilTab extends StatelessWidget {
   const ProfilTab({super.key});
@@ -472,6 +473,18 @@ class ProfilTab extends StatelessWidget {
             ).then((_) {
               if (context.mounted) auth.refreshUser();
             });
+          }),
+          _dividerFull(),
+          _item(context,
+              icon: Icons.location_on_outlined,
+              label: 'Alamat Transaksi Barang Saya',
+              desc: 'Kelola daftar alamat pengiriman',
+              iconBg: AppColors.marketLight,
+              iconColor: AppColors.market, onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AddressListScreen()),
+            );
           }),
           _dividerFull(),
           _item(context,

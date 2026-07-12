@@ -155,14 +155,10 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
                     value: '${r.availableSlots ?? 0} slot',
                     iconColor: AppColors.residence,
                   ),
-                  InfoRow(
-                    icon: Icons.person_outlined,
-                    label: 'Penyedia',
-                    value: r.providerName,
-                    iconColor: AppColors.residence,
-                  ),
                 ]),
               ),
+              const SizedBox(height: 8),
+              _section('Penyedia', _buildProviderInfo(r.provider)),
               const SizedBox(height: 8),
               _section('Ulasan & Penilaian', _buildRatings(r)),
               // Tombol Beri Ulasan — muncul jika user sudah bayar
@@ -203,6 +199,74 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
                 ),
               ],
               const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProviderInfo(Map<String, dynamic>? providerData) {
+    if (providerData == null) return const SizedBox();
+    
+    final name = providerData['name']?.toString() ?? 'Penyedia';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final createdAtStr = providerData['created_at']?.toString();
+    final lastSeenStr = providerData['last_seen_at']?.toString();
+    
+    String memberSince = 'Penyedia';
+    if (createdAtStr != null) {
+      final dt = DateTime.tryParse(createdAtStr);
+      if (dt != null) {
+        memberSince = 'Anggota sejak ${dt.year}';
+      }
+    }
+
+    Widget? lastSeenWidget;
+    if (lastSeenStr != null) {
+      final dt = DateTime.tryParse(lastSeenStr);
+      if (dt != null) {
+        if (DateTime.now().difference(dt).inMinutes < 5) {
+          lastSeenWidget = const Text('Online', style: TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w500));
+        } else {
+          lastSeenWidget = Text('Terakhir online ${dt.day}/${dt.month}/${dt.year}', style: TextStyle(fontSize: 12, color: Colors.grey[500]));
+        }
+      }
+    }
+    if (lastSeenWidget == null) {
+      lastSeenWidget = Text('Belum pernah online', style: TextStyle(fontSize: 12, color: Colors.grey[500]));
+    }
+
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 20,
+          backgroundColor: AppColors.residence.withOpacity(0.1),
+          child: Text(
+            initial,
+            style: const TextStyle(
+                color: AppColors.residence,
+                fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                memberSince,
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 12, color: Colors.grey[500]),
+              ),
+              const SizedBox(height: 2),
+              lastSeenWidget,
             ],
           ),
         ),
@@ -277,26 +341,36 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (r.hasDiscount)
-                    Text(formatRupiah(r.price),
+                    Text('${formatRupiah(r.price)}/${r.rentalPeriodShort}',
                         style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 13,
                             color: AppColors.textHint,
                             decoration: TextDecoration.lineThrough)),
-                  Text(
-                    formatRupiah(r.discountedPrice),
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.residence,
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: formatRupiah(r.discountedPrice),
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.residence,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '/${r.rentalPeriodShort}',
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Text(r.rentalPeriodLabel,
-                      style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12,
-                          color: AppColors.textSecondary)),
                 ],
               ),
               Container(

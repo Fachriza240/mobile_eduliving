@@ -244,7 +244,9 @@ class _TransactionCard extends StatelessWidget {
             ),
 
             // Aksi (upload bukti bayar jika pending)
-            if (tx.status == 'pending' && tx.paymentStatus != 'paid') ...[
+            if (tx.status == 'pending' && 
+                tx.paymentStatus != 'paid' && 
+                (tx.pickupMethod == 'delivery' || tx.pickupMethod == 'transfer')) ...[
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,

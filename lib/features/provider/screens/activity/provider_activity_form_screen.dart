@@ -811,7 +811,7 @@ Future<FormData> _buildFormData() async {
   Widget _buildCard({required Widget child}) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: AppColors.container,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(12),
       border: Border.all(color: AppColors.border, width: 0.8),
     ),

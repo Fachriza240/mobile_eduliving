@@ -11,6 +11,7 @@ import 'features/profile/providers/booking_provider.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
+import 'features/profile/providers/address_provider.dart';
 import 'features/provider/provider_home_screen.dart'; // RootScreen
 
 // Provider (penyedia) — BARU
@@ -60,6 +61,7 @@ class EduLivingApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ResidenceProvider()),
         ChangeNotifierProvider(create: (_) => ActivityProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
+        ChangeNotifierProvider(create: (_) => AddressProvider()),
 
         // Role: Penyedia
         ChangeNotifierProvider(create: (_) => ProviderDashboardProvider()),

@@ -40,6 +40,10 @@ class ApiConstants {
   static const String userBookmarks = '/user/bookmarks';
   static const String userBookmarksToggle = '/user/bookmarks/toggle';
 
+  static const String userAddresses = '/user/addresses';
+  static String userAddressDetail(int id) => '/user/addresses/$id';
+  static String userAddressSetDefault(int id) => '/user/addresses/$id/set-default';
+
   // ── PROVIDER HUNIAN ───────────────────────────────────
   static const String providerResidenceDashboard =
       '/provider/residence/dashboard';

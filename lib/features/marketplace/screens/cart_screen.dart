@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../providers/cart_provider.dart';
 import 'checkout_screen.dart';
+import 'product_detail_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -144,11 +145,20 @@ class CartScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Image
-                              ClipRRect(
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProductDetailScreen(productId: product.id),
+                                ),
+                              );
+                            },
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Image
+                                ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: product.firstImage.isNotEmpty
                                     ? EduImage(
@@ -193,6 +203,7 @@ class CartScreen extends StatelessWidget {
                                 ),
                               ),
                             ],
+                          ),
                           ),
                           const Divider(height: 24),
                           Row(
