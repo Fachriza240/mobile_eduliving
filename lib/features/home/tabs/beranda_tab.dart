@@ -11,8 +11,8 @@ import '../../residence/screens/residence_detail_screen.dart';
 import '../../activity/screens/activity_detail_screen.dart';
 import '../../marketplace/screens/marketplace_screen.dart';
 import '../../marketplace/screens/product_detail_screen.dart';
-import '../../marketplace/screens/transaction_list_screen.dart';
 import '../search_screen.dart';
+import '../../profile/screens/riwayat_screen.dart';
 
 class BerandaTab extends StatefulWidget {
   const BerandaTab({super.key});
@@ -99,7 +99,8 @@ class _BerandaTabState extends State<BerandaTab> {
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.school_rounded, color: Colors.white, size: 22),
+                      child: const Icon(Icons.school_rounded,
+                          color: Colors.white, size: 22),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -189,14 +190,17 @@ class _BerandaTabState extends State<BerandaTab> {
                       MaterialPageRoute(builder: (_) => const SearchScreen()),
                     ),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 11),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.search, color: Colors.white.withValues(alpha: 0.7), size: 20),
+                          Icon(Icons.search,
+                              color: Colors.white.withValues(alpha: 0.7),
+                              size: 20),
                           const SizedBox(width: 10),
                           Text(
                             'Cari hunian, acara, atau barang...',
@@ -259,7 +263,8 @@ class _BerandaTabState extends State<BerandaTab> {
             title: 'Hunian Terbaru',
             onSeeAll: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HunianTab(showBackButton: true)),
+              MaterialPageRoute(
+                  builder: (_) => const HunianTab(showBackButton: true)),
             ),
           ),
           const SizedBox(height: 16),
@@ -272,7 +277,8 @@ class _BerandaTabState extends State<BerandaTab> {
             seeAllColor: AppColors.activity,
             onSeeAll: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const AcaraTab(showBackButton: true)),
+              MaterialPageRoute(
+                  builder: (_) => const AcaraTab(showBackButton: true)),
             ),
           ),
           const SizedBox(height: 16),
@@ -281,11 +287,13 @@ class _BerandaTabState extends State<BerandaTab> {
 
           // ── Produk Marketplace ───────────────
           SectionHeader(
-            title: 'Barang Terbaru', 
+            title: 'Barang Terbaru',
             seeAllColor: AppColors.market,
             onSeeAll: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const MarketplaceScreen(showBackButton: true)),
+              MaterialPageRoute(
+                  builder: (_) =>
+                      const MarketplaceScreen(showBackButton: true)),
             ),
           ),
           const SizedBox(height: 16),
@@ -370,7 +378,8 @@ class _BerandaTabState extends State<BerandaTab> {
                 bgColor: Colors.blue.withValues(alpha: 0.1),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const HunianTab(showBackButton: true)),
+                  MaterialPageRoute(
+                      builder: (_) => const HunianTab(showBackButton: true)),
                 ),
               ),
             ),
@@ -384,7 +393,8 @@ class _BerandaTabState extends State<BerandaTab> {
                 bgColor: Colors.green.withValues(alpha: 0.1),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const AcaraTab(showBackButton: true)),
+                  MaterialPageRoute(
+                      builder: (_) => const AcaraTab(showBackButton: true)),
                 ),
               ),
             ),
@@ -402,7 +412,9 @@ class _BerandaTabState extends State<BerandaTab> {
                 bgColor: Colors.orange.withValues(alpha: 0.1),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const MarketplaceScreen(showBackButton: true)),
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          const MarketplaceScreen(showBackButton: true)),
                 ),
               ),
             ),
@@ -416,7 +428,9 @@ class _BerandaTabState extends State<BerandaTab> {
                 bgColor: Colors.deepPurpleAccent.withValues(alpha: 0.1),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const TransactionListScreen()),
+                  MaterialPageRoute(
+                      builder: (_) => const RiwayatScreen(
+                          initialKategori: RiwayatKategori.barang)),
                 ),
               ),
             ),
@@ -573,11 +587,11 @@ class _ResidenceHCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ResidenceDetailScreen(id: data['id'] as int),
-          ),
+        context,
+        MaterialPageRoute(
+          builder: (_) => ResidenceDetailScreen(id: data['id'] as int),
         ),
+      ),
       child: Container(
         width: 175,
         margin: const EdgeInsets.only(right: 12),
@@ -627,9 +641,13 @@ class _ResidenceHCard extends StatelessWidget {
                     ),
                   ]),
                   const SizedBox(height: 6),
-                  if (data['has_discount'] == true || data['has_discount'] == 1 || data['has_discount'] == '1' || data['discount_type'] != null)
+                  if (data['has_discount'] == true ||
+                      data['has_discount'] == 1 ||
+                      data['has_discount'] == '1' ||
+                      data['discount_type'] != null)
                     Text(
-                      _rupiah(data['price'], period: data['rental_period'] ?? data['rent_period']),
+                      _rupiah(data['price'],
+                          period: data['rental_period'] ?? data['rent_period']),
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 10,
@@ -709,11 +727,11 @@ class _ActivityHCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ActivityDetailScreen(id: data['id'] as int),
-          ),
+        context,
+        MaterialPageRoute(
+          builder: (_) => ActivityDetailScreen(id: data['id'] as int),
         ),
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
@@ -761,7 +779,10 @@ class _ActivityHCard extends StatelessWidget {
                     ),
                   ]),
                   const SizedBox(height: 4),
-                  if (data['has_discount'] == true || data['has_discount'] == 1 || data['has_discount'] == '1' || data['discount_type'] != null)
+                  if (data['has_discount'] == true ||
+                      data['has_discount'] == 1 ||
+                      data['has_discount'] == '1' ||
+                      data['discount_type'] != null)
                     Text(
                       _price(data['price']),
                       style: const TextStyle(
@@ -772,7 +793,9 @@ class _ActivityHCard extends StatelessWidget {
                       ),
                     ),
                   Text(
-                    _price(data['discounted_price'] ?? _calcDiscount(data['price'], data['discount_type'], data['discount_value'])),
+                    _price(data['discounted_price'] ??
+                        _calcDiscount(data['price'], data['discount_type'],
+                            data['discount_value'])),
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 12,
@@ -878,14 +901,56 @@ class _ProductHCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            EduImage(
-              path: imgPath,
-              width: double.infinity,
-              height: 110,
-              borderRadius: 12,
-              placeholderIcon: Icons.storefront_outlined,
-              placeholderColor: AppColors.marketLight,
-              iconColor: AppColors.market,
+            Stack(
+              children: [
+                EduImage(
+                  path: imgPath,
+                  width: double.infinity,
+                  height: 110,
+                  borderRadius: 12,
+                  placeholderIcon: Icons.storefront_outlined,
+                  placeholderColor: AppColors.marketLight,
+                  iconColor: AppColors.market,
+                ),
+                Builder(
+                  builder: (ctx) {
+                    final userId = ctx.read<AuthProvider>().user?.id;
+                    final sellerId = data['seller']?['id'];
+                    if (userId == null ||
+                        sellerId == null ||
+                        sellerId != userId) {
+                      return const SizedBox.shrink();
+                    }
+                    return Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.market,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.storefront_rounded,
+                                size: 9, color: Colors.white),
+                            SizedBox(width: 2),
+                            Text(
+                              'Produk Anda',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.all(10),

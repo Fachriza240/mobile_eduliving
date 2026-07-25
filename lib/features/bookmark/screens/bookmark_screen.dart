@@ -272,7 +272,8 @@ class _BookmarkCard extends StatelessWidget {
                             fontSize: 13,
                           ),
                         ),
-                        if (item.averageRating != null &&
+                        if (bookmark.bookmarkableType == 'Residence' &&
+                            item.averageRating != null &&
                             item.averageRating! > 0)
                           Row(
                             children: [

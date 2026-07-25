@@ -80,6 +80,35 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> renewBooking(int bookingId, int durationMonths) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final res = await _api.post(
+        ApiConstants.userBookingRenew(bookingId),
+        data: {'duration_months': durationMonths},
+      );
+      
+      // Data yang dikembalikan adalah booking baru (pending).
+      // Kita tambahkan ke list di bagian depan agar muncul pertama.
+      if (res['data'] != null) {
+        final newBooking = BookingModel.fromJson(res['data'] as Map<String, dynamic>);
+        _bookings.insert(0, newBooking);
+      }
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceAll('ApiException: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // ── Filter by Status ─────────────────────────────────
   void setFilter(String status) {
     _filterStatus = status;

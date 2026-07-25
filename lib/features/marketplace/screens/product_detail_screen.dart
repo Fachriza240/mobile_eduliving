@@ -246,21 +246,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               );
                             },
                           ),
-                          if (product.averageRating > 0)
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.star,
-                                    color: Colors.amber, size: 16),
-                                const SizedBox(width: 2),
-                                Text(
-                                  product.averageRating.toStringAsFixed(1),
-                                  style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500),
-                                ),
-                              ],
-                            ),
                         ],
                       ),
                       if (product.tags.isNotEmpty) ...[
@@ -468,6 +453,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       const SizedBox(height: 8),
                       Text(
                         product.description,
+                        textAlign: TextAlign.justify,
                         style: TextStyle(
                             fontSize: 13, color: Colors.grey[700], height: 1.6),
                       ),
@@ -480,6 +466,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(height: 6),
                         Text(
                           product.conditionNotes!,
+                          textAlign: TextAlign.justify,
                           style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey[700],
@@ -554,17 +541,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                               Text(
                                                 AppHelpers.formatPrice(related.price),
                                                 style: const TextStyle(color: AppColors.market, fontWeight: FontWeight.bold, fontSize: 13),
-                                              ),
-                                              const Spacer(),
-                                              Row(
-                                                children: [
-                                                  const Icon(Icons.star, color: Colors.amber, size: 12),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    related.averageRating > 0 ? related.averageRating.toStringAsFixed(1) : '0.0',
-                                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                                                  ),
-                                                ],
                                               ),
                                             ],
                                           ),

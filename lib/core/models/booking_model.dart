@@ -17,6 +17,7 @@ class BookingModel {
   final DateTime? createdAt;
   final DateTime? paymentDeadline;
   final bool paymentExpired;
+  final bool isRenewal;
 
   BookingModel({
     required this.id,
@@ -37,6 +38,7 @@ class BookingModel {
     this.createdAt,
     this.paymentDeadline,
     this.paymentExpired = false,
+    this.isRenewal = false,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -73,6 +75,7 @@ class BookingModel {
           ? DateTime.tryParse(json['payment_deadline'].toString())
           : null,
       paymentExpired: json['payment_expired'] as bool? ?? false,
+      isRenewal: json['is_renewal'] as bool? ?? false,
     );
   }
 

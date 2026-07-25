@@ -5,7 +5,7 @@ import '../../../core/utils/app_helpers.dart';
 import '../../marketplace/screens/become_provider_marketplace_screen.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/booking_provider.dart';
-import '../../profile/screens/booking_list_screen.dart';
+import '../../profile/screens/riwayat_screen.dart';
 import '../../profile/screens/edit_profile_screen.dart';
 import '../../profile/screens/address/address_list_screen.dart';
 
@@ -433,24 +433,16 @@ class ProfilTab extends StatelessWidget {
           _sectionLabel('Aktivitas'),
           _item(context,
               icon: Icons.receipt_long_outlined,
-              label: 'Riwayat Pemesanan',
-              desc: 'Hunian dan acara yang pernah dipesan',
+              label: 'Riwayat',
+              desc: 'Hunian, acara, dan barang yang pernah dipesan',
               iconBg: AppColors.primaryLight,
-              iconColor: AppColors.primary, onTap: () {
-            context.read<BookingProvider>().loadBookings();
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const BookingListScreen()),
-            );
-          }),
-          _dividerFull(),
-          _item(context,
-              icon: Icons.receipt_long_outlined,
-              label: 'Riwayat Transaksi',
-              desc: 'Pembelian barang dari marketplace',
-              iconBg: AppColors.marketLight,
-              iconColor: AppColors.market,
-              onTap: () => Navigator.pushNamed(context, '/transactions')),
+              iconColor: AppColors.primary,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RiwayatScreen()),
+                );
+              }),
           _dividerFull(),
           _item(context,
               icon: Icons.bookmark_border_rounded,

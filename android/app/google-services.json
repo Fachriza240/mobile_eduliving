@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "783642519040",
+    "project_id": "eduliving-c598c",
+    "storage_bucket": "eduliving-c598c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:783642519040:android:ba29222f5457eacafe9ae5",
+        "android_client_info": {
+          "package_name": "com.eduliving.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDz6S1KdDtxumqycHbf6F8TCZ7rZfOmUHc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -332,17 +332,6 @@ class _ProviderProductCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (product.averageRating > 0) ...[
-                      const Icon(Icons.star, size: 13, color: Colors.amber),
-                      const SizedBox(width: 2),
-                      Text(
-                        product.averageRating.toStringAsFixed(1),
-                        style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 12,
-                            color: AppColors.textSecondary),
-                      ),
-                    ],
                   ],
                 ),
 

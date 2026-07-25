@@ -13,6 +13,7 @@ import '../../activity/screens/activity_detail_screen.dart';
 import 'rating_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/booking_provider.dart';
+import 'booking_renew_screen.dart';
 class BookingDetailScreen extends StatefulWidget {
   final BookingModel booking;
   const BookingDetailScreen({super.key, required this.booking});
@@ -86,7 +87,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               const SizedBox(height: 8),
             ],
             _buildPriceCard(),
-            if (booking.status == 'completed' || (booking.status == 'approved' && booking.transaction?['payment_status'] == 'paid')) ...[
+            if (_canRate()) ...[
               const SizedBox(height: 8),
               _buildRatingButton(context),
             ],
@@ -127,11 +128,78 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 ),
               ),
             ],
+            if (_isRenewable()) ...[
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _goToRenewScreen(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    icon: const Icon(Icons.autorenew, size: 20),
+                    label: const Text(
+                      'Perpanjang Sewa',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
           ],
         ),
       ),
     );
+  }
+
+  bool _isRenewable() {
+    if (!booking.isResidence) return false;
+    if (booking.status != 'approved') return false;
+    if (booking.endDate == null) return false;
+    
+    // Perpanjang sewa muncul jika sisa <= 7 hari, dan belum expired.
+    // Jika sudah lewat endDate, status akan jadi completed dari backend,
+    // tapi kalau belum update, kita handle juga agar tidak negatif jauh.
+    final diff = booking.endDate!.difference(DateTime.now()).inDays;
+    return diff >= 0 && diff <= 7;
+  }
+
+  bool _canRate() {
+    // Bisa rate jika sudah selesai
+    if (booking.status == 'completed') return true;
+    
+    // Atau jika hunian dan sudah H-7 dari tanggal selesai (sama seperti bisa diperpanjang)
+    if (booking.status == 'approved' && booking.isResidence && booking.endDate != null) {
+      final diff = booking.endDate!.difference(DateTime.now()).inDays;
+      return diff >= 0 && diff <= 7;
+    }
+    
+    return false;
+  }
+
+  void _goToRenewScreen(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BookingRenewScreen(booking: booking),
+      ),
+    );
+    if (result == true && context.mounted) {
+      context.read<BookingProvider>().loadBookings();
+      Navigator.pop(context);
+    }
   }
 
   void _confirmCancel(BuildContext context) {
@@ -694,11 +762,32 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Status Pemesanan',
-                  style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700)),
+              Row(
+                children: [
+                  const Text('Status Pemesanan',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700)),
+                  if (booking.isRenewal) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppColors.primary),
+                      ),
+                      child: const Text('Perpanjangan',
+                          style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary)),
+                    ),
+                  ],
+                ],
+              ),
               StatusBadge.booking(booking.status),
             ],
           ),

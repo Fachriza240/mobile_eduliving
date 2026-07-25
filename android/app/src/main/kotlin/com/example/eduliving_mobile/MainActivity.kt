@@ -1,4 +1,4 @@
-package com.example.eduliving_mobile
+package com.eduliving.app
 
 import io.flutter.embedding.android.FlutterActivity
 

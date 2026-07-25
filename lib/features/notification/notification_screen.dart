@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/widgets/common_widgets.dart';
+import '../profile/screens/riwayat_screen.dart';
+import 'package:provider/provider.dart';
+import '../auth/providers/auth_provider.dart';
+import '../provider/screens/booking_mgmt/provider_booking_list_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -25,7 +29,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
-      final res = await _api.get('/user/notifications');
+      final res = await _api.get('/notifications');
       // Backend return: [ status, pagination, notifications [...], unread_count: N ]
       final data = res['data'];
       setState(() {
@@ -49,10 +53,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _markAllRead() async {
     try {
-      await _api.post('/user/notifications/read-all');
+      await _api.patch('/notifications/read-all');
       setState(() {
         _notifications = _notifications
-            .map((n) => {...n, 'read_at': DateTime.now().toIso8601String()})
+            .map((n) => {...n, 'is_unread': false})
             .toList();
         _unreadCount = 0;
       });
@@ -61,32 +65,72 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _markRead(int index) async {
     final n = _notifications[index];
-    if (n['read_at'] != null) return;
+    if (n['is_unread'] == false) return;
     try {
-      await _api.post('/user/notifications/${n['id']}/read');
+      await _api.patch('/notifications/${n['id']}/read');
       setState(() {
         _notifications[index] = {
           ..._notifications[index],
-          'read_at': DateTime.now().toIso8601String(),
+          'is_unread': false,
         };
         _unreadCount = (_unreadCount - 1).clamp(0, 999);
       });
     } catch (_) {}
   }
 
-  IconData _typeIcon(String? type) {
-    if (type == null) return Icons.notifications_outlined;
-    if (type.contains('Booking')) return Icons.calendar_today_outlined;
-    if (type.contains('Activity')) return Icons.event_outlined;
-    if (type.contains('Transaction')) return Icons.storefront_outlined;
-    return Icons.notifications_outlined;
+  IconData _typeIcon(String? iconStr) {
+    if (iconStr == null) return Icons.notifications_rounded;
+    if (iconStr.contains('check')) return Icons.check_circle_rounded;
+    if (iconStr.contains('times') || iconStr.contains('xmark')) return Icons.cancel_rounded;
+    if (iconStr.contains('shopping') || iconStr.contains('box') || iconStr.contains('cart')) return Icons.local_mall_rounded;
+    if (iconStr.contains('home') || iconStr.contains('building')) return Icons.home_work_rounded;
+    if (iconStr.contains('star')) return Icons.star_rounded;
+    if (iconStr.contains('calendar')) return Icons.calendar_month_rounded;
+    if (iconStr.contains('exclamation') || iconStr.contains('warning')) return Icons.warning_rounded;
+    if (iconStr.contains('money') || iconStr.contains('wallet')) return Icons.account_balance_wallet_rounded;
+    return Icons.notifications_rounded;
   }
 
-  Color _typeColor(String? type) {
-    if (type == null) return AppColors.primary;
-    if (type.contains('Activity')) return AppColors.activity;
-    if (type.contains('Transaction')) return AppColors.market;
+  Color _typeColor(String? colorStr) {
+    if (colorStr == null) return AppColors.primary;
+    final c = colorStr.toLowerCase();
+    if (c.contains('green')) return Colors.green;
+    if (c.contains('blue')) return Colors.blue;
+    if (c.contains('red')) return Colors.red;
+    if (c.contains('orange')) return Colors.orange;
+    if (c.contains('yellow')) return Colors.amber;
+    if (c.contains('purple')) return Colors.purple;
     return AppColors.primary;
+  }
+
+  void _handleNavigation(String? url) {
+    if (url == null || url.isEmpty || url == '/') return;
+    
+    // Konversi URL backend menjadi Route mobile
+    if (url.contains('provider/bookings')) {
+      final user = context.read<AuthProvider>().user;
+      final isRes = user?.isProviderResidence ?? false;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProviderBookingListScreen(isResidence: isRes),
+        ),
+      );
+    } else if (url.contains('provider/dashboard') || url.contains('seller/orders')) {
+      Navigator.pushNamed(context, '/home');
+    } else if (url.contains('user/transactions')) {
+      // Notif transaksi barang → Riwayat tab Barang
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => const RiwayatScreen(initialKategori: RiwayatKategori.barang),
+      ));
+    } else if (url.contains('user/bookings')) {
+      // Notif booking/rating/perpanjang → Riwayat tab Hunian
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => const RiwayatScreen(initialKategori: RiwayatKategori.hunian),
+      ));
+    } else if (url.contains('marketplace')) {
+      Navigator.pushNamed(context, '/marketplace');
+    }
   }
 
   @override
@@ -130,14 +174,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Widget _buildTile(int i) {
     final n = _notifications[i];
-    final isUnread = n['read_at'] == null;
-    final type = n['type']?.toString().split('.').last;
-    // Backend Ikbal kirim: { id, type, title, message, is_unread, created_at, url }
-    final title = n['title']?.toString() ?? n['data']?['title'] ?? 'Notifikasi';
-    final message = n['message']?.toString() ?? n['data']?['message'] ?? '';
+    final isUnread = n['is_unread'] == true;
+    
+    final message = n['message']?.toString() ?? n['data']?['message'] ?? 'Ada pemberitahuan baru';
+    final timeStr = n['time']?.toString() ?? formatDate(DateTime.tryParse(n['created_at'] ?? ''));
+    
+    final iconStr = n['icon']?.toString();
+    final colorStr = n['color']?.toString();
+    final urlStr = n['url']?.toString() ?? n['data']?['url']?.toString();
 
     return InkWell(
-      onTap: () => _markRead(i),
+      onTap: () {
+        _markRead(i);
+        _handleNavigation(urlStr);
+      },
       child: Container(
         color: isUnread ? AppColors.primaryLight : Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -148,10 +198,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: _typeColor(type).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+                color: _typeColor(colorStr).withValues(alpha: 0.12),
+                shape: BoxShape.circle,
               ),
-              child: Icon(_typeIcon(type), color: _typeColor(type), size: 20),
+              child: Icon(_typeIcon(iconStr), color: _typeColor(colorStr), size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -159,27 +209,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    message,
                     style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 13,
                         fontWeight:
-                            isUnread ? FontWeight.w700 : FontWeight.w500,
-                        color: AppColors.textPrimary),
+                            isUnread ? FontWeight.w600 : FontWeight.w400,
+                        color: AppColors.textPrimary,
+                        height: 1.4),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 6),
                   Text(
-                    message,
-                    style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        color: AppColors.textSecondary),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formatDate(DateTime.tryParse(n['created_at'] ?? '')),
+                    timeStr,
                     style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 11,
