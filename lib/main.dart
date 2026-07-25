@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/services/fcm_service.dart';
 //import 'features/provider/providers/provider_report_provider.dart';
 
@@ -55,9 +54,6 @@ void main() async {
   ]);
 
   runApp(const EduLivingApp());
-  
-  // Inisialisasi service notifikasi FCM
-  await FcmService().init();
 }
 
 class EduLivingApp extends StatelessWidget {
