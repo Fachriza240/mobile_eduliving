@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/common_widgets.dart';
 import '../../providers/provider_booking_provider.dart';
@@ -108,6 +109,31 @@ class ProviderBookingDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
+
+            if (booking.documents.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _card(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionTitle('Dokumen', Icons.badge_outlined, color),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Untuk verifikasi identitas penyewa',
+                      style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.textHint),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: booking.documents
+                          .map((doc) => _documentPreview(context, doc))
+                          .toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             // ── Alasan penolakan ───────────────────────
             if (booking.isRejected && booking.rejectionReason != null) ...[
@@ -310,6 +336,72 @@ class ProviderBookingDetailScreen extends StatelessWidget {
     ],
   );
 
+Widget _documentPreview(BuildContext context, BookingDocumentModel doc) {
+    return GestureDetector(
+      onTap: () => _openDocument(context, doc),
+      child: SizedBox(
+        width: 130,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 130,
+                height: 90,
+                color: AppColors.background,
+                child: doc.isImage
+                    ? EduImage(
+                        path: doc.url,
+                        width: 130,
+                        height: 90,
+                        fit: BoxFit.cover,
+                      )
+                    : const Center(
+                        child: Icon(Icons.picture_as_pdf_outlined,
+                            size: 32, color: AppColors.textHint),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.visibility_outlined, size: 13, color: AppColors.textHint),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    doc.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openDocument(BuildContext context, BookingDocumentModel doc) {
+    if (!doc.isImage) {
+      launchUrl(Uri.parse(doc.url), mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _DocumentViewerScreen(doc: doc),
+      ),
+    );
+  }
   Widget _row(String label, String value, {TextStyle? valueStyle}) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Row(
@@ -360,5 +452,37 @@ class ProviderBookingDetailScreen extends StatelessWidget {
       case 'cancelled': return 'Dibatalkan';
       default:          return 'Menunggu';
     }
+  }
+}
+
+class _DocumentViewerScreen extends StatelessWidget {
+  final BookingDocumentModel doc;
+
+  const _DocumentViewerScreen({required this.doc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          doc.label,
+          style: const TextStyle(fontFamily: 'Poppins', fontSize: 15),
+        ),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.8,
+          maxScale: 4,
+          child: EduImage(
+            path: doc.url,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -33,7 +33,7 @@ class _ProviderMarketplaceFormScreenState
 
 
   // State
-  String _condition = 'used';
+  String _condition = 'new';
   int? _categoryId;
   List<XFile> _newImages = [];
   List<String> _existingImages = [];
@@ -329,7 +329,9 @@ class _ProviderMarketplaceFormScreenState
                       // ── KONDISI ───────────────────────────
                       _sectionLabel('Kondisi Barang *'),
                       const SizedBox(height: 8),
-                      Row(
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
                         children: [
                           _ConditionChip(
                             label: 'Baru',
@@ -338,18 +340,38 @@ class _ProviderMarketplaceFormScreenState
                             onTap: () =>
                                 setState(() => _condition = 'new'),
                           ),
-                          const SizedBox(width: 10),
                           _ConditionChip(
-                            label: 'Bekas',
-                            selected: _condition == 'used',
+                            label: 'Seperti Baru',
+                            selected: _condition == 'like_new',
+                            color: Colors.blue.shade600,
+                            onTap: () =>
+                                setState(() => _condition = 'like_new'),
+                          ),
+                          _ConditionChip(
+                            label: 'Baik',
+                            selected: _condition == 'good',
                             color: Colors.orange.shade600,
                             onTap: () =>
-                                setState(() => _condition = 'used'),
+                                setState(() => _condition = 'good'),
+                          ),
+                          _ConditionChip(
+                            label: 'Cukup',
+                            selected: _condition == 'fair',
+                            color: Colors.amber.shade700,
+                            onTap: () =>
+                                setState(() => _condition = 'fair'),
+                          ),
+                          _ConditionChip(
+                            label: 'Perlu Perbaikan',
+                            selected: _condition == 'needs_repair',
+                            color: Colors.red.shade600,
+                            onTap: () =>
+                                setState(() => _condition = 'needs_repair'),
                           ),
                         ],
                       ),
 
-                      if (_condition == 'used') ...[
+                      if (_condition != 'new') ...[
                         const SizedBox(height: 12),
                         _sectionLabel('Catatan Kondisi'),
                         const SizedBox(height: 8),
@@ -359,7 +381,6 @@ class _ProviderMarketplaceFormScreenState
                           maxLines: 2,
                         ),
                       ],
-
                       const SizedBox(height: 16),
                       // ── KATEGORI ──────────────────────────
                       _sectionLabel('Kategori*'),

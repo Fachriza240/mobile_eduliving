@@ -56,6 +56,32 @@ class ProviderDashboardModel {
 }
 
 // ============================================================
+// BOOKING DOCUMENT MODEL (KTP / Kartu Keluarga)
+// ============================================================
+class BookingDocumentModel {
+  final String docType; // 'ktp', 'kk', atau 'lainnya'
+  final String label;   // 'KTP', 'Kartu Keluarga', dst
+  final String url;
+  final bool isImage;
+
+  BookingDocumentModel({
+    required this.docType,
+    required this.label,
+    required this.url,
+    required this.isImage,
+  });
+
+  factory BookingDocumentModel.fromJson(Map<String, dynamic> json) {
+    return BookingDocumentModel(
+      docType : json['doc_type'] ?? 'lainnya',
+      label   : json['label'] ?? 'Dokumen',
+      url     : json['url'] ?? '',
+      isImage : json['is_image'] ?? true,
+    );
+  }
+}
+
+// ============================================================
 // PROVIDER BOOKING MODEL
 // ============================================================
 class ProviderBookingModel {
@@ -74,7 +100,7 @@ class ProviderBookingModel {
   final String? notes;
   final String? rejectionReason;
   final DateTime createdAt;
-  final List<String> documents;
+  final List<BookingDocumentModel> documents;
 
   ProviderBookingModel({
     required this.id,
@@ -102,14 +128,13 @@ class ProviderBookingModel {
     final bookableTypeRaw = (json['bookable_type'] as String? ?? '').toLowerCase();
     final bookableType = bookableTypeRaw.contains('activity') ? 'activity' : 'residence';
 
-    final docList = <String>[];
+    final docList = <BookingDocumentModel>[];
     if (json['documents'] != null && json['documents'] is List) {
       for (final doc in (json['documents'] as List)) {
-        if (doc is Map) {
-          final url = doc['file_path'] ?? doc['url'] ?? doc['path'];
-          if (url != null) docList.add(url.toString());
-        } else if (doc != null) {
-          docList.add(doc.toString());
+        if (doc is Map<String, dynamic>) {
+          docList.add(BookingDocumentModel.fromJson(doc));
+        } else if (doc is Map) {
+          docList.add(BookingDocumentModel.fromJson(Map<String, dynamic>.from(doc)));
         }
       }
     }
