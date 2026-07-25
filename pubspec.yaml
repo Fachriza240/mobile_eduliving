@@ -29,6 +29,9 @@ dependencies:
   url_launcher: ^6.3.0
 
   cupertino_icons: ^1.0.8
+  firebase_core: ^4.12.1
+  firebase_messaging: ^16.4.3
+  flutter_local_notifications: ^20.1.0
 
 dev_dependencies:
   flutter_test:

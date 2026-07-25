@@ -345,7 +345,7 @@ class _SearchScreenState extends State<SearchScreen> {
               color: const Color(0xFF2563EB),
               title: e['name'] ?? '',
               subtitle: e['address'] ?? '',
-              priceLabel: _rupiah(e['price'], suffix: '/bln'),
+              priceLabel: _rupiah(e['price'], suffix: '/${_shortPeriod(e['rental_period'] ?? e['rent_period'])}'),
               badge: e['category']?['name'] ?? e['residence_type'],
               onTap: () => Navigator.push(context, MaterialPageRoute(
                 builder: (_) => ResidenceDetailScreen(id: e['id']),
@@ -428,6 +428,19 @@ class _SearchScreenState extends State<SearchScreen> {
     final formatted = v.toStringAsFixed(0)
         .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
     return 'Rp $formatted$suffix';
+  }
+
+  String _shortPeriod(String? p) {
+    switch (p) {
+      case 'monthly':
+        return 'bln';
+      case 'yearly':
+        return 'thn';
+      case 'daily':
+        return 'hari';
+      default:
+        return 'bln';
+    }
   }
 
   Widget _sectionLabel(String label, Color color, IconData icon, int count) {

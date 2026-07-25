@@ -5,6 +5,7 @@ import '../../../core/constants/api_constants.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/utils/storage_helper.dart';
+import '../../../core/services/fcm_service.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
@@ -43,6 +44,9 @@ class AuthProvider extends ChangeNotifier {
         _user = UserModel.fromJson(userData);
       }
       _status = AuthStatus.authenticated;
+      
+      // Upload FCM Token saat aplikasi dibuka & sesi masih aktif
+      FcmService.uploadFcmToken();
     } catch (_) {
       await StorageHelper.clearAll();
       _status = AuthStatus.unauthenticated;
@@ -90,6 +94,10 @@ class AuthProvider extends ChangeNotifier {
 
       _status = AuthStatus.authenticated;
       notifyListeners();
+
+      // Upload FCM Token setelah login
+      FcmService.uploadFcmToken();
+      
       return true;
     } on ApiException catch (e) {
       _errorMessage = e.message;
@@ -154,6 +162,10 @@ class AuthProvider extends ChangeNotifier {
 
       _status = AuthStatus.authenticated;
       notifyListeners();
+
+      // Upload FCM Token setelah register
+      FcmService.uploadFcmToken();
+      
       return true;
     } on ApiException catch (e) {
       _errorMessage = e.message;
@@ -230,6 +242,10 @@ class AuthProvider extends ChangeNotifier {
 
       _status = AuthStatus.authenticated;
       notifyListeners();
+
+      // Upload FCM Token setelah register provider
+      FcmService.uploadFcmToken();
+      
       return true;
     } on ApiException catch (e) {
       _errorMessage = e.message;
@@ -255,6 +271,8 @@ class AuthProvider extends ChangeNotifier {
   // ── Logout ────────────────────────────────────────────
   Future<void> logout() async {
     try {
+      // Hapus token FCM dari server sebelum token Sanctum hilang
+      await FcmService.deleteFcmToken();
       await _api.post(ApiConstants.logout);
     } catch (_) {}
     await StorageHelper.clearAll();

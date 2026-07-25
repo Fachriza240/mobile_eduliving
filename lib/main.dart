@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'core/services/fcm_service.dart';
 //import 'features/provider/providers/provider_report_provider.dart';
 
 import 'core/utils/app_theme.dart';
@@ -27,12 +30,17 @@ import 'features/marketplace/providers/cart_provider.dart';
 import 'features/bookmark/screens/bookmark_screen.dart';
 import 'features/marketplace/screens/marketplace_screen.dart';
 import 'features/marketplace/screens/cart_screen.dart';
-import 'features/marketplace/screens/transaction_list_screen.dart';
+import 'features/profile/screens/riwayat_screen.dart';
 import 'features/profile/screens/change_password_screen.dart';
 import 'features/notification/notification_screen.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await Firebase.initializeApp();
+  await FcmService().init();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -47,6 +55,9 @@ void main() async {
   ]);
 
   runApp(const EduLivingApp());
+  
+  // Inisialisasi service notifikasi FCM
+  await FcmService().init();
 }
 
 class EduLivingApp extends StatelessWidget {
@@ -78,6 +89,7 @@ class EduLivingApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'EduLiving',
+        navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         initialRoute: '/',
@@ -89,7 +101,7 @@ class EduLivingApp extends StatelessWidget {
           '/bookmarks': (_) => const BookmarkScreen(),
           '/marketplace': (_) => const MarketplaceScreen(),
           '/cart': (_) => const CartScreen(),
-          '/transactions': (_) => const TransactionListScreen(),
+          '/transactions': (_) => const RiwayatScreen(initialKategori: RiwayatKategori.barang),
           '/change-password': (_) => const ChangePasswordScreen(),
           '/notifications': (_) => const NotificationScreen(),
         },

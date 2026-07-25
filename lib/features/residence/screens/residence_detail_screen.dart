@@ -160,6 +160,33 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
               const SizedBox(height: 8),
               _section('Penyedia', _buildProviderInfo(r.provider)),
               const SizedBox(height: 8),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.residenceLight.withValues(alpha: 0.5),
+                  border: Border.all(color: AppColors.residence.withValues(alpha: 0.3)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded, color: AppColors.residence, size: 20),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Siapkan foto KTP dan Kartu Keluarga (opsional) sebelum melakukan pemesanan untuk keperluan verifikasi.',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               _section('Ulasan & Penilaian', _buildRatings(r)),
               // Tombol Beri Ulasan — muncul jika user sudah bayar
               if (isLoggedIn && _hasPaidBooking(r.id)) ...[
@@ -668,6 +695,7 @@ class _ResidenceDetailScreenState extends State<ResidenceDetailScreen> {
       );
 
   Widget _descText(String t) => Text(t,
+      textAlign: TextAlign.justify,
       style: const TextStyle(
           fontFamily: 'Poppins',
           fontSize: 13,

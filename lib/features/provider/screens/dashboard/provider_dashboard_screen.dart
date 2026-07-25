@@ -74,6 +74,34 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                     ),
                   ],
                 ),
+                actions: [
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/notifications'),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 16),
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(Icons.notifications_none_rounded, color: Colors.white, size: 22),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: CircleAvatar(
+                              radius: 4,
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
               if (prov.isLoading)

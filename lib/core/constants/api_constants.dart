@@ -35,6 +35,7 @@ class ApiConstants {
 
   static String userBookingDetail(int id) => '/user/bookings/$id';
   static String userBookingCancel(int id) => '/user/bookings/$id/cancel';
+  static String userBookingRenew(int id) => '/user/bookings/$id/renew';
   static String userBookingPayment(int id) => '/user/bookings/$id/payment';
 
   static const String userBookmarks = '/user/bookmarks';
