@@ -59,7 +59,7 @@ class _ProviderActivityFormScreenState
   final _discountOptions = const [
     {'value': '',           'label': 'Tidak Ada Diskon'},
     {'value': 'percentage', 'label': 'Persentase (%)'},
-    {'value': 'fixed',      'label': 'Nominal (Rp)'},
+    {'value': 'flat',      'label': 'Nominal (Rp)'},
   ];
 
   @override
