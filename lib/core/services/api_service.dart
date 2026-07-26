@@ -151,26 +151,19 @@ class ApiService {
         String msg = 'Terjadi kesalahan.';
         Map<String, dynamic>? errs;
 
-        if (body is Map<String, dynamic>) {
-          msg = body['message'] ?? msg;
-          errs = body['errors'];
-        }
-
-        if (code == 401) {
-          msg = 'Sesi habis. Silakan masuk kembali.';
-          StorageHelper.clearAll();
+        if (body is Map<String, dynamic> && body.containsKey('message')) {
+          msg = body['message'].toString();
+          errs = body['errors'] is Map<String, dynamic> ? body['errors'] : null;
+        } else if (code == 401) {
+          msg = 'Email/password salah atau sesi telah habis.';
         } else if (code == 403) {
-          msg = body is Map
-              ? (body['message'] ?? 'Akses ditolak.')
-              : 'Akses ditolak.';
+          msg = 'Akses ditolak.';
         } else if (code == 404) {
-          msg = 'Data tidak ditemukan.';
+          msg = 'Endpoint atau data tidak ditemukan (404).';
         } else if (code == 422) {
-          msg = body is Map
-              ? (body['message'] ?? 'Data tidak valid.')
-              : 'Data tidak valid.';
+          msg = 'Data tidak valid.';
         } else if (code != null && code >= 500) {
-          msg = 'Terjadi kesalahan pada server. Coba lagi nanti.';
+          msg = 'Terjadi kesalahan pada server ($code).';
         }
 
         return ApiException(message: msg, statusCode: code, errors: errs);

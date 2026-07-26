@@ -120,29 +120,70 @@ class _HunianTabState extends State<HunianTab> {
           Consumer<ResidenceProvider>(
             builder: (context, p, _) {
               final hasFilter =
-                  p.selectedCategory.isNotEmpty || p.selectedKosType != null;
+                  p.selectedCategory.isNotEmpty || 
+                  p.selectedKosType != null || 
+                  p.selectedRentalPeriod != null;
               if (!hasFilter) return const SizedBox.shrink();
               return Container(
                 color: Colors.white,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                 child: Row(
                   children: [
-                    if (p.selectedCategory.isNotEmpty)
-                      _ActiveFilterChip(
-                        label: p.selectedCategory.toUpperCase(),
-                        onRemove: () => p.setFilter(category: ''),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            if (p.selectedCategory.isNotEmpty)
+                              _ActiveFilterChip(
+                                label: p.selectedCategory.toUpperCase(),
+                                onRemove: () => p.setFilter(
+                                    category: '',
+                                    kosType: null,
+                                    rentalPeriod: p.selectedRentalPeriod,
+                                    minPrice: p.minPrice,
+                                    maxPrice: p.maxPrice,
+                                    sortBy: p.sortBy),
+                              ),
+                            if (p.selectedKosType != null)
+                              Padding(
+                                padding: p.selectedCategory.isNotEmpty
+                                    ? const EdgeInsets.only(left: 8)
+                                    : EdgeInsets.zero,
+                                child: _ActiveFilterChip(
+                                  label: 'Kos ${p.selectedKosType}'.toUpperCase(),
+                                  onRemove: () => p.setFilter(
+                                      category: p.selectedCategory,
+                                      kosType: null,
+                                      rentalPeriod: p.selectedRentalPeriod,
+                                      minPrice: p.minPrice,
+                                      maxPrice: p.maxPrice,
+                                      sortBy: p.sortBy),
+                                ),
+                              ),
+                            if (p.selectedRentalPeriod != null)
+                              Padding(
+                                padding: (p.selectedCategory.isNotEmpty || p.selectedKosType != null)
+                                    ? const EdgeInsets.only(left: 8)
+                                    : EdgeInsets.zero,
+                                child: _ActiveFilterChip(
+                                  label: (p.selectedRentalPeriod == 'monthly' ? 'Bulanan' : 'Tahunan').toUpperCase(),
+                                  onRemove: () => p.setFilter(
+                                      category: p.selectedCategory,
+                                      kosType: p.selectedKosType,
+                                      rentalPeriod: null,
+                                      minPrice: p.minPrice,
+                                      maxPrice: p.maxPrice,
+                                      sortBy: p.sortBy),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    if (p.selectedCategory.isNotEmpty &&
-                        p.selectedKosType != null)
-                      const SizedBox(width: 8),
-                    if (p.selectedKosType != null)
-                      _ActiveFilterChip(
-                        label: 'Kos ${p.selectedKosType}'.toUpperCase(),
-                        onRemove: () => p.setFilter(kosType: null),
-                      ),
-                    const Spacer(),
+                    ),
+                    const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () => p.setFilter(category: '', kosType: null),
+                      onTap: () => p.clearFilter(),
                       child: const Text(
                         'Reset filter',
                         style: TextStyle(
@@ -547,6 +588,7 @@ class _FilterSheet extends StatefulWidget {
 class _FilterSheetState extends State<_FilterSheet> {
   String _category = '';
   String? _kosType;
+  String? _rentalPeriod;
   double? _minPrice;
   double? _maxPrice;
   String? _sortBy;
@@ -558,6 +600,7 @@ class _FilterSheetState extends State<_FilterSheet> {
     final p = context.read<ResidenceProvider>();
     _category = p.selectedCategory;
     _kosType = p.selectedKosType;
+    _rentalPeriod = p.selectedRentalPeriod;
     _minPrice = p.minPrice;
     _maxPrice = p.maxPrice;
     _sortBy = p.sortBy;
@@ -658,6 +701,31 @@ class _FilterSheetState extends State<_FilterSheet> {
             ),
           ],
           const SizedBox(height: 16),
+          const Text('Periode Sewa',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _FilterChipUI(
+                  label: 'Semua',
+                  value: null,
+                  selected: _rentalPeriod,
+                  onTap: (v) => setState(() => _rentalPeriod = v)),
+              _FilterChipUI(
+                  label: 'Bulanan',
+                  value: 'monthly',
+                  selected: _rentalPeriod,
+                  onTap: (v) => setState(() => _rentalPeriod = v)),
+              _FilterChipUI(
+                  label: 'Tahunan',
+                  value: 'yearly',
+                  selected: _rentalPeriod,
+                  onTap: (v) => setState(() => _rentalPeriod = v)),
+            ],
+          ),
+          const SizedBox(height: 16),
           const Text('Rentang Harga (Per Bulan)',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
@@ -727,6 +795,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                 context.read<ResidenceProvider>().setFilter(
                       category: _category,
                       kosType: _kosType,
+                      rentalPeriod: _rentalPeriod,
                       minPrice: _minPrice,
                       maxPrice: _maxPrice,
                       sortBy: _sortBy,

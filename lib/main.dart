@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/services/fcm_service.dart';
@@ -38,8 +39,18 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await Firebase.initializeApp();
-  await FcmService().init();
+  try {
+    if (!kIsWeb) {
+      await Firebase.initializeApp();
+      await FcmService().init();
+    } else {
+      // On Web, try Firebase initialize if options are available, else catch error gracefully
+      await Firebase.initializeApp();
+      await FcmService().init();
+    }
+  } catch (e) {
+    debugPrint('Firebase/FCM init error (non-fatal): $e');
+  }
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
