@@ -13,6 +13,7 @@ class ResidenceProvider extends ChangeNotifier {
   String _searchQuery = '';
   String _selectedCategory = '';
   String? _selectedKosType; // NEW
+  String? _selectedRentalPeriod;
   double? _minPrice;
   double? _maxPrice;
   String? _sortBy;
@@ -25,13 +26,21 @@ class ResidenceProvider extends ChangeNotifier {
 
   // ── Getters ──────────────────────────────────────────
   List<ResidenceModel> get residences {
-    if (_searchQuery.isEmpty) return _residences;
-    final lower = _searchQuery.toLowerCase();
-    return _residences.where((r) {
-      final name = r.name.toLowerCase();
-      final type = (r.residenceType ?? '').toLowerCase();
-      return name.contains(lower) || type.contains(lower);
-    }).toList();
+    var list = _residences;
+    if (_searchQuery.isNotEmpty) {
+      final lower = _searchQuery.toLowerCase();
+      list = list.where((r) {
+        final name = r.name.toLowerCase();
+        final type = (r.residenceType ?? '').toLowerCase();
+        return name.contains(lower) || type.contains(lower);
+      }).toList();
+    }
+    
+    if (_selectedRentalPeriod != null) {
+      list = list.where((r) => r.rentalPeriod?.toLowerCase() == _selectedRentalPeriod?.toLowerCase()).toList();
+    }
+    
+    return list;
   }
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
@@ -43,6 +52,7 @@ class ResidenceProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
   String? get selectedKosType => _selectedKosType;
+  String? get selectedRentalPeriod => _selectedRentalPeriod;
   double? get minPrice => _minPrice;
   double? get maxPrice => _maxPrice;
   String? get sortBy => _sortBy;
@@ -57,12 +67,14 @@ class ResidenceProvider extends ChangeNotifier {
   void setFilter({
     String? category,
     String? kosType,
+    String? rentalPeriod,
     double? minPrice,
     double? maxPrice,
     String? sortBy,
   }) {
     if (category != null) _selectedCategory = category;
     _selectedKosType = kosType;
+    _selectedRentalPeriod = rentalPeriod;
     _minPrice = minPrice;
     _maxPrice = maxPrice;
     _sortBy = sortBy;
@@ -106,6 +118,9 @@ class ResidenceProvider extends ChangeNotifier {
       }
       if (_selectedKosType != null) {
         params['kos_type'] = _selectedKosType;
+      }
+      if (_selectedRentalPeriod != null) {
+        params['rental_period'] = _selectedRentalPeriod;
       }
       if (_minPrice != null) {
         params['min_price'] = _minPrice;
@@ -163,6 +178,7 @@ class ResidenceProvider extends ChangeNotifier {
     _searchQuery = '';
     _selectedCategory = '';
     _selectedKosType = null;
+    _selectedRentalPeriod = null;
     _minPrice = null;
     _maxPrice = null;
     _sortBy = null;
