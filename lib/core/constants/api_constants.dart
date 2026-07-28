@@ -1,13 +1,20 @@
+import 'package:flutter/foundation.dart';
+
 class ApiConstants {
   ApiConstants._();
 
   // ============================================================
-  // Ganti IP sesuai kondisi kamu:
-  // - Android Emulator  → 10.0.2.2
-  // - Device fisik      → IP Wi-Fi komputer (cek ipconfig/ifconfig)
-  // Contoh device fisik : 'http://192.168.1.10:8000/api/v1'
+  // Base URL Otomatis untuk Web, Emulator, dan Device
   // ============================================================
-  static const String baseUrl = 'https://edulivng.my.id/api/v1';
+  static String get baseUrl {
+    if (kReleaseMode) {
+      // Saat dibuild untuk hosting / playstore
+      return 'https://edulivng.my.id/api/v1';
+    } else {
+      // Saat testing di lokal (Emulator)
+      return 'http://10.0.2.2:8000/api/v1';
+    }
+  }
 
   static const int connectTimeout = 30000;
   static const int receiveTimeout = 30000;
@@ -43,7 +50,8 @@ class ApiConstants {
 
   static const String userAddresses = '/user/addresses';
   static String userAddressDetail(int id) => '/user/addresses/$id';
-  static String userAddressSetDefault(int id) => '/user/addresses/$id/set-default';
+  static String userAddressSetDefault(int id) =>
+      '/user/addresses/$id/set-default';
 
   // ── PROVIDER HUNIAN ───────────────────────────────────
   static const String providerResidenceDashboard =

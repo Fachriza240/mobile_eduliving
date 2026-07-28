@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/marketplace_model.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/utils/file_helper.dart';
+import 'package:image_picker/image_picker.dart';
 
 class MarketplaceProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
@@ -189,11 +191,11 @@ class MarketplaceTransactionProvider extends ChangeNotifier {
     await fetchTransactions();
   }
 
-  Future<void> uploadPaymentProof(int id, String filePath, String paymentMethod) async {
+  Future<void> uploadPaymentProof(int id, XFile file, String paymentMethod) async {
     final formData = FormData.fromMap({
       'payment_method': paymentMethod,
-      'payment_proof': await MultipartFile.fromFile(
-        filePath,
+      'payment_proof': await FileHelper.createMultipart(
+        file,
         filename: 'proof_${DateTime.now().millisecondsSinceEpoch}.jpg',
       ),
     });

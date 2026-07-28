@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/residence_model.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/widgets/common_widgets.dart';
+import '../../../core/utils/file_helper.dart';
 
 class ResidenceBookingScreen extends StatefulWidget {
   final ResidenceModel residence;
@@ -28,9 +29,9 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
   String? _error;
 
   // Dokumen
-  File? _ktpFile;
+  XFile? _ktpFile;
   String? _ktpFileName;
-  File? _kkFile;
+  XFile? _kkFile;
   String? _kkFileName;
 
   // Pilihan durasi: bergantung pada rental_period
@@ -105,10 +106,10 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
     if (picked != null) {
       setState(() {
         if (isKtp) {
-          _ktpFile = File(picked.path);
+          _ktpFile = picked;
           _ktpFileName = picked.name;
         } else {
-          _kkFile = File(picked.path);
+          _kkFile = picked;
           _kkFileName = picked.name;
         }
       });
@@ -149,16 +150,16 @@ class _ResidenceBookingScreenState extends State<ResidenceBookingScreen> {
       // Tambah dokumen — backend expect documents[] array
       formData.files.add(MapEntry(
         'documents[]',
-        await MultipartFile.fromFile(
-          _ktpFile!.path,
+        await FileHelper.createMultipart(
+          _ktpFile!,
           filename: 'ktp_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ),
       ));
       if (_kkFile != null) {
         formData.files.add(MapEntry(
           'documents[]',
-          await MultipartFile.fromFile(
-            _kkFile!.path,
+          await FileHelper.createMultipart(
+            _kkFile!,
             filename: 'kk_${DateTime.now().millisecondsSinceEpoch}.jpg',
           ),
         ));

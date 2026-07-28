@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/constants/app_colors.dart';
 import '../providers/auth_provider.dart';
 
@@ -28,7 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _selectedRole = 'user';
 
   // Provider verification fields
-  File? _ktpFile;
+  XFile? _ktpFile;
   String? _selfieBase64;
   bool _isPickingImage = false;
 
@@ -85,7 +86,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         maxWidth: 1280,
       );
       if (picked != null) {
-        setState(() => _ktpFile = File(picked.path));
+        setState(() => _ktpFile = picked);
       }
     } catch (e) {
       _showError('Gagal memilih foto KTP: $e');
@@ -105,7 +106,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         preferredCameraDevice: CameraDevice.front,
       );
       if (picked != null) {
-        final bytes = await File(picked.path).readAsBytes();
+        final bytes = await picked.readAsBytes();
         final ext = picked.path.split('.').last.toLowerCase();
         final mime = ext == 'png' ? 'png' : 'jpeg';
         final base64Str = 'data:image/$mime;base64,${base64Encode(bytes)}';
@@ -128,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         maxWidth: 1280,
       );
       if (picked != null) {
-        final bytes = await File(picked.path).readAsBytes();
+        final bytes = await picked.readAsBytes();
         final ext = picked.path.split('.').last.toLowerCase();
         final mime = ext == 'png' ? 'png' : 'jpeg';
         final base64Str = 'data:image/$mime;base64,${base64Encode(bytes)}';
@@ -593,12 +594,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
-                      _ktpFile!,
-                      width: double.infinity,
-                      height: 130,
-                      fit: BoxFit.cover,
-                    ),
+                    child: kIsWeb
+                        ? Image.network(
+                            _ktpFile!.path,
+                            width: double.infinity,
+                            height: 130,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.file(
+                            File(_ktpFile!.path),
+                            width: double.infinity,
+                            height: 130,
+                            fit: BoxFit.cover,
+                          ),
                   ),
                   Positioned(
                     top: 8,

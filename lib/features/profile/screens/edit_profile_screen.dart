@@ -4,10 +4,12 @@ import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/widgets/common_widgets.dart';
+import '../../../core/utils/file_helper.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -22,7 +24,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _api = ApiService();
-  File? _selectedImage;
+  XFile? _selectedImage;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   String? _error;
@@ -55,7 +57,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       imageQuality: 80,
     );
     if (picked != null) {
-      setState(() => _selectedImage = File(picked.path));
+      setState(() => _selectedImage = picked);
     }
   }
 
@@ -77,8 +79,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           'phone': _phoneCtrl.text.trim(),
           'address': _addressCtrl.text.trim(),
           '_method': 'PUT',
-          'profile_picture': await MultipartFile.fromFile(
-            _selectedImage!.path,
+          'profile_picture': await FileHelper.createMultipart(
+            _selectedImage!,
             filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
           ),
         });
@@ -140,8 +142,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             child: _selectedImage != null
                                 ? ClipRRect(
                                     borderRadius: BorderRadius.circular(44),
-                                    child: Image.file(_selectedImage!,
-                                        fit: BoxFit.cover),
+                                    child: kIsWeb
+                                        ? Image.network(_selectedImage!.path, fit: BoxFit.cover)
+                                        : Image.file(File(_selectedImage!.path), fit: BoxFit.cover),
                                   )
                                 : Center(
                                     child: Text(

@@ -6,8 +6,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/common_widgets.dart';
+import '../../../../core/utils/file_helper.dart';
 import '../../providers/provider_marketplace_provider.dart';
 import '../../models/provider_models.dart';
+import 'package:flutter/foundation.dart';
 
 class ProviderMarketplaceFormScreen extends StatefulWidget {
   final ProviderMarketplaceProductModel? product;
@@ -144,7 +146,7 @@ class _ProviderMarketplaceFormScreenState
     for (int i = 0; i < _newImages.length; i++) {
       imageFiles.add(MapEntry(
         'images[$i]',
-        await MultipartFile.fromFile(_newImages[i].path,
+        await FileHelper.createMultipart(_newImages[i],
             filename: 'img_$i.jpg'),
       ));
     }
@@ -741,12 +743,19 @@ class _ImagePickerSection extends StatelessWidget {
               context,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  File(e.value.path),
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                ),
+                child: kIsWeb
+                  ? Image.network(
+                      e.value.path,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    )
+                  : Image.file(
+                      File(e.value.path),
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    ),
               ),
               onRemove: () => onRemoveNew(e.key),
             )),

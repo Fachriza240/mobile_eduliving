@@ -6,8 +6,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/common_widgets.dart';
+import '../../../../core/utils/file_helper.dart';
 import '../../providers/provider_activity_provider.dart';
 import '../../models/provider_models.dart';
+import 'package:flutter/foundation.dart';
 
 class ProviderActivityFormScreen extends StatefulWidget {
   final ProviderActivityModel? activity;
@@ -213,7 +215,7 @@ Future<FormData> _buildFormData() async {
   for (int i = 0; i < _newImages.length; i++) {
     imageFiles.add(MapEntry(
       'images[$i]',
-      await MultipartFile.fromFile(_newImages[i].path, filename: 'img_$i.jpg'),
+      await FileHelper.createMultipart(_newImages[i], filename: 'img_$i.jpg'),
     ));
   }
 
@@ -583,7 +585,9 @@ Future<FormData> _buildFormData() async {
                         borderRadius: BorderRadius.circular(10),
                         child: item.url != null
                             ? EduImage(path: item.url, width: 100, height: 100, fit: BoxFit.cover, borderRadius: 10)
-                            : Image.file(File(item.path!), width: 100, height: 100, fit: BoxFit.cover),
+                            : kIsWeb 
+                                ? Image.network(item.path!, width: 100, height: 100, fit: BoxFit.cover)
+                                : Image.file(File(item.path!), width: 100, height: 100, fit: BoxFit.cover),
                       ),
                       Positioned(
                         top: 4, right: 4,

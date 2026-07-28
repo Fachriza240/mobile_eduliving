@@ -1,9 +1,10 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/utils/file_helper.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../../../core/services/fcm_service.dart';
 
@@ -191,7 +192,7 @@ class AuthProvider extends ChangeNotifier {
     required String passwordConfirmation,
     required String role, // 'provider_residence' atau 'provider_event'
     required String providerNik, // 16 digit
-    required File providerKtp, // file foto KTP dari galeri
+    required XFile providerKtp, // file foto KTP dari galeri
     required String providerSelfieBase64, // base64 string hasil kamera
   }) async {
     _status = AuthStatus.loading;
@@ -209,8 +210,8 @@ class AuthProvider extends ChangeNotifier {
         'role': role,
         'provider_nik': providerNik.trim(),
         // File KTP — upload langsung sebagai file
-        'provider_ktp': await MultipartFile.fromFile(
-          providerKtp.path,
+        'provider_ktp': await FileHelper.createMultipart(
+          providerKtp,
           filename: 'ktp_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ),
         // Selfie dikirim sebagai string base64

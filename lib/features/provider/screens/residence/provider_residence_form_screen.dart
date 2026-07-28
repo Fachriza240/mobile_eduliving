@@ -6,8 +6,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/common_widgets.dart';
+import '../../../../core/utils/file_helper.dart';
 import '../../providers/provider_residence_provider.dart';
 import '../../models/provider_models.dart';
+import 'package:flutter/foundation.dart';
 
 class ProviderResidenceFormScreen extends StatefulWidget {
   final ProviderResidenceModel? residence;
@@ -220,7 +222,7 @@ class _ProviderResidenceFormScreenState
     for (int i = 0; i < _newImages.length; i++) {
       imageFiles.add(MapEntry(
         'images[$i]',
-        await MultipartFile.fromFile(_newImages[i].path, filename: 'image_$i.jpg'),
+        await FileHelper.createMultipart(_newImages[i], filename: 'image_$i.jpg'),
       ));
     }
 
@@ -537,7 +539,9 @@ class _ProviderResidenceFormScreenState
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          child: Image.file(File(entry.value.path), width: 100, height: 100, fit: BoxFit.cover),
+                          child: kIsWeb 
+                            ? Image.network(entry.value.path, width: 100, height: 100, fit: BoxFit.cover)
+                            : Image.file(File(entry.value.path), width: 100, height: 100, fit: BoxFit.cover),
                         ),
                         Positioned(
                           top: 4, right: 4,
