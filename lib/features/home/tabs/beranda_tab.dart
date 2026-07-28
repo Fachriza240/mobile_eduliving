@@ -62,7 +62,7 @@ class _BerandaTabState extends State<BerandaTab> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Gagal memuat data. Tarik untuk muat ulang.';
+        _error = 'Error: $e\n\nGagal memuat data.';
         _isLoading = false;
       });
     }

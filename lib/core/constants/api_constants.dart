@@ -26,7 +26,7 @@ class ApiConstants {
   static const String me = '/auth/me';
 
   // ── PUBLIC ───────────────────────────────────────────
-  static const String home = '/';
+  static const String home = '';
   static const String residences = '/residences';
   static const String activities = '/activities';
   static const String categories = '/categories';
