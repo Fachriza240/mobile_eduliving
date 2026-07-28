@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // Tambahan untuk kIsWeb
 import 'package:cached_network_image/cached_network_image.dart';
 import '../constants/app_colors.dart';
 import '../constants/api_constants.dart';
@@ -227,7 +228,7 @@ class _EduImageState extends State<EduImage> {
       child: url != null && _headersLoaded
           ? CachedNetworkImage(
               imageUrl: url,
-              httpHeaders: _headers,
+              httpHeaders: kIsWeb ? null : _headers,
               width: widget.width,
               height: widget.height,
               fit: widget.fit,
