@@ -28,7 +28,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   // Payment State
   String? _selectedPaymentMethod;
-  File? _paymentProofFile;
+  XFile? _paymentProofFile;
   String? _paymentProofName;
   bool _isPaymentLoading = false;
   final ImagePicker _picker = ImagePicker();
@@ -133,7 +133,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     try {
       await context.read<MarketplaceTransactionProvider>().uploadPaymentProof(
         _tx!.id,
-        _paymentProofFile!.path,
+        _paymentProofFile!,
         _selectedPaymentMethod!
       );
       
@@ -648,7 +648,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
               if (picked != null) {
                 setState(() {
-                  _paymentProofFile = File(picked.path);
+                  _paymentProofFile = picked;
                   _paymentProofName = picked.name;
                 });
               }

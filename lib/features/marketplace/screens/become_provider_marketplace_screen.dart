@@ -10,7 +10,9 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/utils/file_helper.dart';
 import '../../auth/providers/auth_provider.dart';
+import 'package:flutter/foundation.dart';
 
 class BecomeProviderMarketplaceScreen extends StatefulWidget {
   const BecomeProviderMarketplaceScreen({super.key});
@@ -26,8 +28,8 @@ class _BecomeProviderMarketplaceScreenState
   final _api     = ApiService();
   final _nikCtrl = TextEditingController();
 
-  File? _ktpFile;
-  File? _selfieFile;
+  XFile? _ktpFile;
+  XFile? _selfieFile;
   bool  _isLoading = false;
   bool  _agreed    = false;
 
@@ -46,7 +48,7 @@ class _BecomeProviderMarketplaceScreenState
       imageQuality: 80,
       maxWidth: 1200,
     );
-    if (picked != null) setState(() => _ktpFile = File(picked.path));
+    if (picked != null) setState(() => _ktpFile = picked);
   }
 
   // ── Pick Selfie (kamera) ───────────────────────────
@@ -57,7 +59,7 @@ class _BecomeProviderMarketplaceScreenState
       maxWidth: 800,
       preferredCameraDevice: CameraDevice.front,
     );
-    if (picked != null) setState(() => _selfieFile = File(picked.path));
+    if (picked != null) setState(() => _selfieFile = picked);
   }
 
   // ── Submit ─────────────────────────────────────────
@@ -87,8 +89,8 @@ class _BecomeProviderMarketplaceScreenState
       // KTP → multipart file
       final formData = FormData.fromMap({
         'seller_nik'   : _nikCtrl.text.trim(),
-        'seller_ktp'   : await MultipartFile.fromFile(
-          _ktpFile!.path, 
+        'seller_ktp'   : await FileHelper.createMultipart(
+          _ktpFile!, 
           filename: 'ktp.jpg',
         ),
         'seller_selfie': selfieBase64,
@@ -451,7 +453,7 @@ class _BecomeProviderMarketplaceScreenState
   Widget _photoPickerCard({
     required String label,
     required String hint,
-    required File? file,
+    required XFile? file,
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -474,7 +476,7 @@ class _BecomeProviderMarketplaceScreenState
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(11),
-                    child: Image.file(file, fit: BoxFit.cover),
+                    child: kIsWeb ? Image.network(file.path, fit: BoxFit.cover) : Image.file(File(file.path), fit: BoxFit.cover),
                   ),
                   Positioned(
                     top: 8,

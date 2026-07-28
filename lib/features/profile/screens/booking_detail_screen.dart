@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/utils/file_helper.dart';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/booking_model.dart';
@@ -27,7 +28,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   final _api = ApiService();
   final _picker = ImagePicker();
   String? _selectedPaymentMethod;
-  File? _paymentProofFile;
+  XFile? _paymentProofFile;
   String? _paymentProofName;
   bool _isPaymentLoading = false;
   Timer? _timer;
@@ -551,7 +552,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       );
                       if (picked != null) {
                         setState(() {
-                          _paymentProofFile = File(picked.path);
+                          _paymentProofFile = picked;
                           _paymentProofName = picked.name;
                         });
                       }
@@ -656,8 +657,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       final formData = FormData.fromMap({
         'payment_method': _selectedPaymentMethod!,
         if (_paymentProofFile != null)
-          'payment_proof': await MultipartFile.fromFile(
-            _paymentProofFile!.path,
+          'payment_proof': await FileHelper.createMultipart(
+            _paymentProofFile!,
             filename: 'proof_${DateTime.now().millisecondsSinceEpoch}.jpg',
           ),
       });

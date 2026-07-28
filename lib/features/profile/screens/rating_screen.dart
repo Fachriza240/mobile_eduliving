@@ -6,7 +6,9 @@ import 'package:dio/dio.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/widgets/common_widgets.dart';
+import '../../../core/utils/file_helper.dart';
 import '../../auth/providers/auth_provider.dart';
+import 'package:flutter/foundation.dart';
 
 class RatingScreen extends StatefulWidget {
   final bool isResidence;
@@ -32,7 +34,7 @@ class _RatingScreenState extends State<RatingScreen> {
   bool _isEditing = false;
   bool _isDeleting = false;
   
-  File? _selectedPhoto;
+  XFile? _selectedPhoto;
   String? _existingPhotoUrl;
 
   @override
@@ -78,7 +80,7 @@ class _RatingScreenState extends State<RatingScreen> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (picked != null) {
-      setState(() => _selectedPhoto = File(picked.path));
+      setState(() => _selectedPhoto = picked);
     }
   }
 
@@ -145,7 +147,7 @@ class _RatingScreenState extends State<RatingScreen> {
       if (_selectedPhoto != null) {
         formData.files.add(MapEntry(
           'photo',
-          await MultipartFile.fromFile(_selectedPhoto!.path),
+          await FileHelper.createMultipart(_selectedPhoto!),
         ));
       }
 
@@ -317,7 +319,9 @@ class _RatingScreenState extends State<RatingScreen> {
                 child: _selectedPhoto != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.file(_selectedPhoto!, fit: BoxFit.cover),
+                        child: kIsWeb
+                            ? Image.network(_selectedPhoto!.path, fit: BoxFit.cover)
+                            : Image.file(File(_selectedPhoto!.path), fit: BoxFit.cover),
                       )
                     : _existingPhotoUrl != null && _existingPhotoUrl!.isNotEmpty
                         ? ClipRRect(
